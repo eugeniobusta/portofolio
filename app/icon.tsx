@@ -1,9 +1,15 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "fs/promises";
+import { join } from "path";
 
-export const size = { width: 32, height: 32 };
+export const size = { width: 64, height: 64 };
 export const contentType = "image/png";
 
-export default function Icon() {
+export default async function Icon() {
+  const font = await readFile(
+    join(process.cwd(), "public/fonts/InstrumentSerif-Regular.woff2")
+  );
+
   return new ImageResponse(
     (
       <div
@@ -14,9 +20,9 @@ export default function Icon() {
           alignItems: "center",
           justifyContent: "center",
           background: "#ffffff",
-          fontFamily: "Georgia, 'Times New Roman', serif",
-          fontSize: 14,
-          fontWeight: "400",
+          fontFamily: "Instrument Serif",
+          fontSize: 28,
+          fontWeight: 400,
           color: "#17181d",
           letterSpacing: "-0.5px",
         }}
@@ -24,6 +30,17 @@ export default function Icon() {
         EB
       </div>
     ),
-    { width: 32, height: 32 }
+    {
+      width: 64,
+      height: 64,
+      fonts: [
+        {
+          name: "Instrument Serif",
+          data: font,
+          style: "normal",
+          weight: 400,
+        },
+      ],
+    }
   );
 }
