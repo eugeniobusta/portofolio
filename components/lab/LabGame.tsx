@@ -17,11 +17,11 @@ const WORLD   = 100;          // terrain square side (expand later)
 const HALF    = WORLD / 2;
 
 /* ─── physics ──────────────────────────────────────────────────── */
-const ACCEL   = 20;
-const BRAKE   = 13;
-const FRIC    = 0.87;
-const MAX_SPD = 26;
-const STEER   = 2.5;
+const ACCEL   = 38;
+const BRAKE   = 22;
+const FRIC    = 0.92;
+const MAX_SPD = 48;
+const STEER   = 2.6;
 const SMOKE_N = 55;
 
 /* ─── gentle terrain ──────────────────────────────────────────── */
@@ -93,10 +93,15 @@ function Boundary() {
   );
 }
 
-/* ─── Ground pebbles — scattered reference objects ────────────── */
-function Pebbles() {
+/* ─── Ground pebbles — three colour groups ────────────────────── */
+const PEBBLE_DEFS = [
+  { count: 110, seed: 1337, color: "#aaaaaa", emissive: "#000000", emissiveIntensity: 0 },
+  { count:  55, seed: 5531, color: "#1e1e1e", emissive: "#000000", emissiveIntensity: 0 },
+  { count:  40, seed: 9173, color: "#3ecf6a", emissive: "#3ecf6a", emissiveIntensity: 0.55 },
+] as const;
+
+function PebbleGroup({ count, seed, color, emissive, emissiveIntensity }: typeof PEBBLE_DEFS[number]) {
   const ref = useRef<THREE.InstancedMesh>(null!);
-  const COUNT = 200;
 
   useEffect(() => {
     const mesh = ref.current;
@@ -104,30 +109,37 @@ function Pebbles() {
     const M = new THREE.Matrix4();
     const Q = new THREE.Quaternion();
     const S = new THREE.Vector3();
-    let seed = 1337;
-    const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    let s = seed;
+    const rand = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
 
-    for (let i = 0; i < COUNT; i++) {
-      const x = (rand() - 0.5) * (WORLD - 6);
-      const z = (rand() - 0.5) * (WORLD - 6);
-      const y = sampleH(x, z) + 0.035;
-      const sx = 0.08 + rand() * 0.14;
-      const sz = 0.06 + rand() * 0.12;
-      const sy = 0.04 + rand() * 0.05;
+    for (let i = 0; i < count; i++) {
+      const x  = (rand() - 0.5) * (WORLD - 6);
+      const z  = (rand() - 0.5) * (WORLD - 6);
+      const y  = sampleH(x, z) + 0.05;
+      const sx = 0.10 + rand() * 0.18;
+      const sz = 0.08 + rand() * 0.16;
+      const sy = 0.07 + rand() * 0.09;   // tall enough to survive near-clip
       Q.setFromEuler(new THREE.Euler(0, rand() * Math.PI * 2, 0));
       S.set(sx, sy, sz);
       M.compose(new THREE.Vector3(x, y, z), Q, S);
       mesh.setMatrixAt(i, M);
     }
     mesh.instanceMatrix.needsUpdate = true;
-  }, []);
+  }, [count, seed]);
 
   return (
-    <instancedMesh ref={ref} args={[undefined, undefined, COUNT]} receiveShadow>
+    /* frustumCulled={false}: Three.js uses the base-geo bounding sphere for InstancedMesh
+       frustum culling — it incorrectly hides instances when the camera zooms in close.
+       Disabling it keeps all pebbles visible at any zoom level. */
+    <instancedMesh ref={ref} args={[undefined, undefined, count]} receiveShadow frustumCulled={false}>
       <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="#ababab" roughness={0.95} />
+      <meshStandardMaterial color={color} emissive={emissive} emissiveIntensity={emissiveIntensity} roughness={0.9} />
     </instancedMesh>
   );
+}
+
+function Pebbles() {
+  return <>{PEBBLE_DEFS.map((d, i) => <PebbleGroup key={i} {...d} />)}</>;
 }
 
 /* ─── Jeep ────────────────────────────────────────────────────── */
@@ -324,7 +336,10 @@ function Scene() {
   const carPos   = useRef(new THREE.Vector3(0, 1, 0));
   const carYaw   = useRef(0);
 
-  useFrame((_, delta) => {
+  useFrame(({ camera }, delta) => {
+    /* prevent camera from clipping through the ground */
+    if (camera.position.y < 1.8) camera.position.y = 1.8;
+
     const dt = Math.min(delta, 0.05);
     const { w, a, s, d } = keys.current;
     let spd = speedRef.current;
@@ -386,7 +401,7 @@ function Scene() {
         dampingFactor={0.07}
         minPolarAngle={Math.PI * 0.10}
         maxPolarAngle={Math.PI * 0.44}
-        minDistance={8}
+        minDistance={5}
         maxDistance={70}
       />
     </>
