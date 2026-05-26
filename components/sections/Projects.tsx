@@ -5,37 +5,37 @@ import { ArrowUpRight, GithubLogo, Lightbulb } from "@phosphor-icons/react";
 import { projects, ideas, statusLabel, statusColor, type Project, type Idea } from "@/data/projects";
 import ProjectVisual from "@/components/ui/ProjectVisual";
 
-/* Header slams from left */
+/* Header slides from left */
 const fromLeft = {
-  hidden:  { opacity: 0, x: -70, filter: "blur(8px)" },
+  hidden:  { opacity: 0, x: -50, filter: "blur(6px)" },
   visible: { opacity: 1, x: 0,   filter: "blur(0px)",
-    transition: { type: "spring" as const, damping: 12, stiffness: 180 } },
+    transition: { type: "spring" as const, damping: 20, stiffness: 180 } },
 };
 
-/* Featured card — bouncy slam from left */
+/* Featured card — slides from left with slight bounce */
 const fromLeftCard = {
-  hidden:  { opacity: 0, x: -80, scale: 0.95 },
+  hidden:  { opacity: 0, x: -55, scale: 0.97 },
   visible: (i: number) => ({
     opacity: 1, x: 0, scale: 1,
-    transition: { type: "spring" as const, damping: 11, stiffness: 220, delay: i * 0.1 },
+    transition: { type: "spring" as const, damping: 18, stiffness: 200, delay: i * 0.1 },
   }),
 };
 
-/* Right column — bouncy slam from right */
+/* Right column — slides from right */
 const fromRight = {
-  hidden:  { opacity: 0, x: 80, scale: 0.95 },
+  hidden:  { opacity: 0, x: 55, scale: 0.97 },
   visible: (i: number) => ({
     opacity: 1, x: 0, scale: 1,
-    transition: { type: "spring" as const, damping: 11, stiffness: 220, delay: i * 0.08 },
+    transition: { type: "spring" as const, damping: 18, stiffness: 200, delay: i * 0.08 },
   }),
 };
 
-/* Bottom row — pop up hard from below */
+/* Bottom row — pops up from below */
 const popUp = {
-  hidden:  { opacity: 0, y: 80, scale: 0.92 },
+  hidden:  { opacity: 0, y: 50, scale: 0.95 },
   visible: (i: number) => ({
     opacity: 1, y: 0, scale: 1,
-    transition: { type: "spring" as const, damping: 10, stiffness: 250, delay: i * 0.1 },
+    transition: { type: "spring" as const, damping: 18, stiffness: 220, delay: i * 0.1 },
   }),
 };
 

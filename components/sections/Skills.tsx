@@ -3,28 +3,28 @@
 import { motion } from "framer-motion";
 import { skills } from "@/data/projects";
 
-/* Header blasts in from right */
+/* Header slides from right */
 const fromRight = {
-  hidden:  { opacity: 0, x: 70, filter: "blur(8px)" },
+  hidden:  { opacity: 0, x: 50, filter: "blur(6px)" },
   visible: { opacity: 1, x: 0,  filter: "blur(0px)",
-    transition: { type: "spring" as const, damping: 12, stiffness: 180 } },
+    transition: { type: "spring" as const, damping: 20, stiffness: 180 } },
 };
 
-/* Rows slide from left with hard bounce */
+/* Rows slide from left */
 const rowSlide = {
-  hidden:  { opacity: 0, x: -55, filter: "blur(4px)" },
+  hidden:  { opacity: 0, x: -40, filter: "blur(3px)" },
   visible: (i: number) => ({
     opacity: 1, x: 0, filter: "blur(0px)",
-    transition: { type: "spring" as const, damping: 10, stiffness: 240, delay: i * 0.07 },
+    transition: { type: "spring" as const, damping: 18, stiffness: 200, delay: i * 0.07 },
   }),
 };
 
-/* Tags pop in like bubbles — very bouncy */
+/* Tags pop in — bouncy but controlled */
 const tagPop = {
-  hidden:  { opacity: 0, scale: 0.5, y: 10 },
+  hidden:  { opacity: 0, scale: 0.65, y: 8 },
   visible: (i: number) => ({
     opacity: 1, scale: 1, y: 0,
-    transition: { type: "spring" as const, damping: 7, stiffness: 450, delay: i * 0.04 },
+    transition: { type: "spring" as const, damping: 16, stiffness: 300, delay: i * 0.04 },
   }),
 };
 
@@ -83,10 +83,10 @@ export default function Skills() {
         </div>
 
         <motion.p
-          initial={{ opacity: 0, y: 20, scale: 0.9 }}
+          initial={{ opacity: 0, y: 16, scale: 0.95 }}
           whileInView={{ opacity: 1, y: 0, scale: 1 }}
           viewport={{ once: true, margin: "-30px" }}
-          transition={{ type: "spring", damping: 10, stiffness: 260, delay: 0.3 }}
+          transition={{ type: "spring", damping: 18, stiffness: 220, delay: 0.3 }}
           className="mt-8 text-xs text-muted font-mono"
         >
           + whatever is needed. I pick up tools fast.

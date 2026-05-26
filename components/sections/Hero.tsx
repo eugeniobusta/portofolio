@@ -5,30 +5,30 @@ import { ArrowDown, ArrowRight, GithubLogo, LinkedinLogo } from "@phosphor-icons
 
 /* Each element enters from a different direction — spring values tuned for bounce */
 const heroAnim: Record<number, object> = {
-  0: { // Name — slams in from left with blur
-    hidden:  { opacity: 0, x: -80, filter: "blur(10px)" },
+  0: { // Name — slides in from left
+    hidden:  { opacity: 0, x: -60, filter: "blur(8px)" },
     visible: { opacity: 1, x: 0,   filter: "blur(0px)",
-      transition: { type: "spring" as const, damping: 14, stiffness: 180 } },
+      transition: { type: "spring" as const, damping: 20, stiffness: 180 } },
   },
-  1: { // Tagline — slides from right with bounce
-    hidden:  { opacity: 0, x: 60, filter: "blur(6px)" },
+  1: { // Tagline — slides from right
+    hidden:  { opacity: 0, x: 45, filter: "blur(5px)" },
     visible: { opacity: 1, x: 0,  filter: "blur(0px)",
-      transition: { type: "spring" as const, damping: 12, stiffness: 200, delay: 0.08 } },
+      transition: { type: "spring" as const, damping: 20, stiffness: 180, delay: 0.08 } },
   },
-  2: { // "Simplicity" line — pops in from below
-    hidden:  { opacity: 0, y: 30, scale: 0.88 },
+  2: { // "Simplicity" line — pops from below
+    hidden:  { opacity: 0, y: 24, scale: 0.93 },
     visible: { opacity: 1, y: 0,  scale: 1,
-      transition: { type: "spring" as const, damping: 10, stiffness: 280, delay: 0.18 } },
+      transition: { type: "spring" as const, damping: 18, stiffness: 220, delay: 0.18 } },
   },
   3: { // CTAs — bouncy up
-    hidden:  { opacity: 0, y: 50, scale: 0.92 },
+    hidden:  { opacity: 0, y: 36, scale: 0.95 },
     visible: { opacity: 1, y: 0,  scale: 1,
-      transition: { type: "spring" as const, damping: 10, stiffness: 260, delay: 0.28 } },
+      transition: { type: "spring" as const, damping: 18, stiffness: 220, delay: 0.28 } },
   },
   4: { // Social links — fade up
-    hidden:  { opacity: 0, y: 24 },
+    hidden:  { opacity: 0, y: 18 },
     visible: { opacity: 1, y: 0,
-      transition: { type: "spring" as const, damping: 14, stiffness: 220, delay: 0.42 } },
+      transition: { type: "spring" as const, damping: 20, stiffness: 200, delay: 0.42 } },
   },
 };
 

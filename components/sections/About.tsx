@@ -3,28 +3,28 @@
 import { motion } from "framer-motion";
 import { Brain, Code, Rocket } from "@phosphor-icons/react";
 
-/* Header slams from left */
+/* Header slides from left */
 const fromLeft = {
-  hidden:  { opacity: 0, x: -70, filter: "blur(8px)" },
+  hidden:  { opacity: 0, x: -50, filter: "blur(6px)" },
   visible: { opacity: 1, x: 0,   filter: "blur(0px)",
-    transition: { type: "spring" as const, damping: 12, stiffness: 180 } },
+    transition: { type: "spring" as const, damping: 20, stiffness: 180 } },
 };
 
-/* Paragraphs bounce up hard */
+/* Paragraphs bounce up */
 const bounceUp = {
-  hidden:  { opacity: 0, y: 60, scale: 0.93 },
+  hidden:  { opacity: 0, y: 40, scale: 0.96 },
   visible: (i: number) => ({
     opacity: 1, y: 0, scale: 1,
-    transition: { type: "spring" as const, damping: 10, stiffness: 260, delay: i * 0.1 },
+    transition: { type: "spring" as const, damping: 18, stiffness: 220, delay: i * 0.1 },
   }),
 };
 
-/* Stats fly in from the right */
+/* Stats slide in from right */
 const fromRight = {
-  hidden:  { opacity: 0, x: 70 },
+  hidden:  { opacity: 0, x: 50 },
   visible: (i: number) => ({
     opacity: 1, x: 0,
-    transition: { type: "spring" as const, damping: 10, stiffness: 240, delay: i * 0.12 },
+    transition: { type: "spring" as const, damping: 18, stiffness: 200, delay: i * 0.12 },
   }),
 };
 
@@ -80,10 +80,10 @@ export default function About() {
 
             {/* Philosophy quote — pops in with scale */}
             <motion.figure
-              initial={{ opacity: 0, scale: 0.88, y: 30 }}
+              initial={{ opacity: 0, scale: 0.94, y: 20 }}
               whileInView={{ opacity: 1, scale: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
-              transition={{ type: "spring", damping: 10, stiffness: 280, delay: 0.2 }}
+              transition={{ type: "spring", damping: 20, stiffness: 220, delay: 0.2 }}
               className="rounded-xl p-5"
               style={{ background: "var(--surface)" }}
             >

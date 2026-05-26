@@ -108,7 +108,7 @@ export default function Navbar() {
                         layoutId="nav-pill"
                         className="absolute inset-0 rounded-full"
                         style={{ background: "var(--surface)", border: "1px solid var(--frame)" }}
-                        transition={{ type: "spring", damping: 7, stiffness: 380, mass: 1.0 }}
+                        transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
                       />
                     )}
                     <span className="relative z-10">{link.label}</span>
