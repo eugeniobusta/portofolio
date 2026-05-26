@@ -36,9 +36,9 @@ const GEO_DRIFT = ["geo-drift-1", "geo-drift-2", "geo-drift-3"];
 const LINES = Array.from({ length: 14 }, (_, i) => ({
   x:       prng((i + 10) * 7.3)  * 95,
   y:       prng((i + 10) * 13.1) * 95,
-  length:  36 + prng((i + 10) * 5.9) * 90,  // 36 – 126 px
-  angle:   prng((i + 10) * 11.7) * 180,      // 0 – 180°
-  opacity: 0.07 + prng((i + 10) * 3.3) * 0.07, // 0.07 – 0.14
+  length:  40 + prng((i + 10) * 5.9) * 100,  // 40 – 140 px
+  angle:   prng((i + 10) * 11.7) * 180,
+  opacity: 0.20 + prng((i + 10) * 3.3) * 0.15, // 0.20 – 0.35
   driftAnim:  GEO_DRIFT[Math.floor(prng((i + 10) * 19.3) * 3)],
   driftDur:   `${24 + prng((i + 10) * 8.1) * 46}s`,
   driftDelay: `${-prng((i + 10) * 6.7) * 28}s`,
@@ -48,8 +48,8 @@ const LINES = Array.from({ length: 14 }, (_, i) => ({
 const DIAMONDS = Array.from({ length: 10 }, (_, i) => ({
   x:       prng((i + 50) * 9.1)  * 92,
   y:       prng((i + 50) * 4.7)  * 92,
-  size:    12 + prng((i + 50) * 6.3) * 22,   // 12 – 34 px
-  opacity: 0.07 + prng((i + 50) * 7.1) * 0.07, // 0.07 – 0.14
+  size:    14 + prng((i + 50) * 6.3) * 24,   // 14 – 38 px
+  opacity: 0.18 + prng((i + 50) * 7.1) * 0.14, // 0.18 – 0.32
   driftAnim:  GEO_DRIFT[Math.floor(prng((i + 50) * 21.7) * 3)],
   driftDur:   `${28 + prng((i + 50) * 11.3) * 42}s`,
   driftDelay: `${-prng((i + 50) * 5.3) * 30}s`,
@@ -59,8 +59,8 @@ const DIAMONDS = Array.from({ length: 10 }, (_, i) => ({
 const CROSSES = Array.from({ length: 8 }, (_, i) => ({
   x:       prng((i + 80) * 6.7)  * 93,
   y:       prng((i + 80) * 14.3) * 93,
-  arm:     6 + prng((i + 80) * 3.7) * 10,    // half-arm 6 – 16 px
-  opacity: 0.07 + prng((i + 80) * 9.1) * 0.06,
+  arm:     8 + prng((i + 80) * 3.7) * 12,    // half-arm 8 – 20 px
+  opacity: 0.18 + prng((i + 80) * 9.1) * 0.12, // 0.18 – 0.30
   driftAnim:  GEO_DRIFT[Math.floor(prng((i + 80) * 17.1) * 3)],
   driftDur:   `${22 + prng((i + 80) * 7.9) * 50}s`,
   driftDelay: `${-prng((i + 80) * 4.1) * 25}s`,
@@ -78,8 +78,8 @@ export default function BackgroundAmbience() {
     return () => obs.disconnect();
   }, []);
 
-  /* Shared grey color token for light mode shapes */
-  const grey = (opacity: number) => `oklch(48% 0 0 / ${opacity})`;
+  /* Mid-grey, dark enough to create real contrast on the near-white bg */
+  const grey = (opacity: number) => `oklch(42% 0 0 / ${opacity})`;
 
   return (
     <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden>
@@ -119,8 +119,9 @@ export default function BackgroundAmbience() {
            * Barely visible but adds structure; doesn't interfere with text
            * because the dots are 1 px (single pixel, never spans a glyph).
            */}
+          {/* Dot grid — 1 px dots at 22% opacity — now actually visible */}
           <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle, oklch(48% 0 0 / 0.10) 1px, transparent 1px)`,
+            backgroundImage: `radial-gradient(circle, oklch(42% 0 0 / 0.22) 1px, transparent 1px)`,
             backgroundSize: "30px 30px",
           }} />
 
@@ -177,23 +178,23 @@ export default function BackgroundAmbience() {
           ))}
 
           {/*
-           * Three large soft blobs — these are what actually prevent pure white.
-           * Warm cream top-left, cool grey-blue bottom-right, amber accent center.
-           * They live UNDER everything so text is never affected.
+           * Three large blobs — much darker base colour so they're actually
+           * visible against the 97.5% lightness paper background.
+           * oklch(74%) at 55% opacity → composites to ~84% = 13% contrast. Visible.
            */}
           <div className="absolute rounded-full" style={{
-            top: "-18%", left: "-12%", width: 700, height: 700,
-            background: "radial-gradient(circle, oklch(86% 0.018 85 / 0.60) 0%, transparent 65%)",
+            top: "-18%", left: "-12%", width: 800, height: 800,
+            background: "radial-gradient(circle, oklch(74% 0.025 85 / 0.55) 0%, transparent 65%)",
             animation: "orb-drift-1 36s ease-in-out infinite",
           }} />
           <div className="absolute rounded-full" style={{
-            bottom: "-22%", right: "-14%", width: 750, height: 750,
-            background: "radial-gradient(circle, oklch(87% 0.014 250 / 0.55) 0%, transparent 65%)",
+            bottom: "-22%", right: "-14%", width: 850, height: 850,
+            background: "radial-gradient(circle, oklch(75% 0.020 250 / 0.50) 0%, transparent 65%)",
             animation: "orb-drift-3 44s ease-in-out infinite",
           }} />
           <div className="absolute rounded-full" style={{
-            top: "38%", left: "52%", width: 480, height: 480,
-            background: "radial-gradient(circle, oklch(88% 0.012 68 / 0.40) 0%, transparent 65%)",
+            top: "38%", left: "52%", width: 560, height: 560,
+            background: "radial-gradient(circle, oklch(76% 0.018 68 / 0.42) 0%, transparent 65%)",
             animation: "orb-drift-2 52s ease-in-out infinite",
           }} />
 
