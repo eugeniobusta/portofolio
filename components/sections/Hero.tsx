@@ -3,32 +3,32 @@
 import { motion } from "framer-motion";
 import { ArrowDown, ArrowRight, GithubLogo, LinkedinLogo } from "@phosphor-icons/react";
 
-/* Each element enters from a different direction for visual dynamism */
+/* Each element enters from a different direction — spring values tuned for bounce */
 const heroAnim: Record<number, object> = {
-  0: { // Name — slides from left with blur
-    hidden: { opacity: 0, x: -60, filter: "blur(8px)" },
-    visible: { opacity: 1, x: 0, filter: "blur(0px)",
-      transition: { type: "spring" as const, damping: 22, stiffness: 140 } },
+  0: { // Name — slams in from left with blur
+    hidden:  { opacity: 0, x: -80, filter: "blur(10px)" },
+    visible: { opacity: 1, x: 0,   filter: "blur(0px)",
+      transition: { type: "spring" as const, damping: 14, stiffness: 180 } },
   },
-  1: { // Tagline — slides from right
-    hidden: { opacity: 0, x: 40, filter: "blur(6px)" },
-    visible: { opacity: 1, x: 0, filter: "blur(0px)",
-      transition: { type: "spring" as const, damping: 24, stiffness: 160, delay: 0.1 } },
+  1: { // Tagline — slides from right with bounce
+    hidden:  { opacity: 0, x: 60, filter: "blur(6px)" },
+    visible: { opacity: 1, x: 0,  filter: "blur(0px)",
+      transition: { type: "spring" as const, damping: 12, stiffness: 200, delay: 0.08 } },
   },
-  2: { // Quote — scales up from slightly smaller
-    hidden: { opacity: 0, scale: 0.92, y: 12 },
-    visible: { opacity: 1, scale: 1, y: 0,
-      transition: { type: "spring" as const, damping: 20, stiffness: 200, delay: 0.2 } },
+  2: { // "Simplicity" line — pops in from below
+    hidden:  { opacity: 0, y: 30, scale: 0.88 },
+    visible: { opacity: 1, y: 0,  scale: 1,
+      transition: { type: "spring" as const, damping: 10, stiffness: 280, delay: 0.18 } },
   },
-  3: { // CTAs — bounce up from below
-    hidden: { opacity: 0, y: 40, scale: 0.95 },
-    visible: { opacity: 1, y: 0, scale: 1,
-      transition: { type: "spring" as const, damping: 16, stiffness: 220, delay: 0.3 } },
+  3: { // CTAs — bouncy up
+    hidden:  { opacity: 0, y: 50, scale: 0.92 },
+    visible: { opacity: 1, y: 0,  scale: 1,
+      transition: { type: "spring" as const, damping: 10, stiffness: 260, delay: 0.28 } },
   },
   4: { // Social links — fade up
-    hidden: { opacity: 0, y: 20 },
+    hidden:  { opacity: 0, y: 24 },
     visible: { opacity: 1, y: 0,
-      transition: { type: "spring" as const, damping: 24, stiffness: 200, delay: 0.45 } },
+      transition: { type: "spring" as const, damping: 14, stiffness: 220, delay: 0.42 } },
   },
 };
 
@@ -45,7 +45,7 @@ export default function Hero({ onGameOpen }: HeroProps) {
       <div className="container">
         <div className="max-w-3xl pt-28 pb-16">
 
-          {/* Name — slides from left */}
+          {/* Name — slams in from left */}
           <motion.h1
             variants={heroAnim[0] as never}
             initial="hidden"
@@ -62,32 +62,29 @@ export default function Hero({ onGameOpen }: HeroProps) {
             variants={heroAnim[1] as never}
             initial="hidden"
             animate="visible"
-            className="text-lg text-muted leading-relaxed max-w-md mb-8"
+            className="text-lg text-muted leading-relaxed max-w-md mb-3"
           >
             I build things at the intersection of software and intelligence.
             Currently obsessed with what happens when AI meets real products.
           </motion.p>
 
-          {/* Philosophy quote — scales up */}
-          <motion.blockquote
+          {/* Simplicity line — pops in */}
+          <motion.p
             variants={heroAnim[2] as never}
             initial="hidden"
             animate="visible"
-            className="mb-10 px-5 py-4 rounded-lg text-sm text-muted italic leading-relaxed"
-            style={{ background: "var(--surface)", maxWidth: "38rem" }}
+            className="text-sm text-muted/60 italic font-serif mb-10"
           >
-            Since AI can make crazy websites, I just want to represent myself
-            in simple ways.
-          </motion.blockquote>
+            Simplicity is key. I love simplicity.
+          </motion.p>
 
-          {/* CTAs — bounce up */}
+          {/* CTAs */}
           <motion.div
             variants={heroAnim[3] as never}
             initial="hidden"
             animate="visible"
             className="flex flex-wrap items-center gap-3"
           >
-            {/* Primary CTA — scroll to projects */}
             <a
               href="#projects"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-ink text-paper text-sm font-medium
@@ -97,12 +94,6 @@ export default function Hero({ onGameOpen }: HeroProps) {
               <ArrowDown size={15} weight="bold" />
             </a>
 
-            {/*
-             * Game portal CTA — the special button.
-             * Uses the "button-in-button" pattern: arrow is in its own
-             * circular container to create internal kinetic tension on hover.
-             * A subtle amber ring pulses around it to draw attention.
-             */}
             <button
               onClick={onGameOpen}
               className="group inline-flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium
@@ -112,7 +103,6 @@ export default function Hero({ onGameOpen }: HeroProps) {
                          relative"
               aria-label="Open the interactive lab"
             >
-              {/* Pulsing ambient ring */}
               <span
                 className="absolute inset-0 rounded-lg animate-ping opacity-[0.15] pointer-events-none"
                 style={{ background: "var(--accent)" }}
@@ -129,7 +119,7 @@ export default function Hero({ onGameOpen }: HeroProps) {
             </button>
           </motion.div>
 
-          {/* Social links — fade up */}
+          {/* Social links */}
           <motion.div
             variants={heroAnim[4] as never}
             initial="hidden"
@@ -161,17 +151,17 @@ export default function Hero({ onGameOpen }: HeroProps) {
         </div>
       </div>
 
-      {/* Scroll indicator — subtle bouncing chevron */}
+      {/* Bouncing scroll chevron */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.2, duration: 0.6 }}
+        transition={{ delay: 1.4, duration: 0.6 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 text-muted/50"
         aria-hidden
       >
         <motion.div
-          animate={{ y: [0, 5, 0] }}
-          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+          animate={{ y: [0, 7, 0] }}
+          transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
         >
           <ArrowDown size={18} />
         </motion.div>

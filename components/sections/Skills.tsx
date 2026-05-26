@@ -3,28 +3,28 @@
 import { motion } from "framer-motion";
 import { skills } from "@/data/projects";
 
-/* Header slides from right for variety */
+/* Header blasts in from right */
 const fromRight = {
-  hidden:  { opacity: 0, x: 52, filter: "blur(6px)" },
-  visible: { opacity: 1, x: 0, filter: "blur(0px)",
-    transition: { type: "spring" as const, damping: 22, stiffness: 160 } },
+  hidden:  { opacity: 0, x: 70, filter: "blur(8px)" },
+  visible: { opacity: 1, x: 0,  filter: "blur(0px)",
+    transition: { type: "spring" as const, damping: 12, stiffness: 180 } },
 };
 
-/* Each row slides from left with spring bounce and stagger */
+/* Rows slide from left with hard bounce */
 const rowSlide = {
-  hidden:  { opacity: 0, x: -40, filter: "blur(4px)" },
+  hidden:  { opacity: 0, x: -55, filter: "blur(4px)" },
   visible: (i: number) => ({
     opacity: 1, x: 0, filter: "blur(0px)",
-    transition: { type: "spring" as const, damping: 20, stiffness: 200, delay: i * 0.07 },
+    transition: { type: "spring" as const, damping: 10, stiffness: 240, delay: i * 0.07 },
   }),
 };
 
-/* Tags pop in one by one inside each row */
+/* Tags pop in like bubbles — very bouncy */
 const tagPop = {
-  hidden:  { opacity: 0, scale: 0.7 },
+  hidden:  { opacity: 0, scale: 0.5, y: 10 },
   visible: (i: number) => ({
-    opacity: 1, scale: 1,
-    transition: { type: "spring" as const, damping: 14, stiffness: 300, delay: i * 0.04 },
+    opacity: 1, scale: 1, y: 0,
+    transition: { type: "spring" as const, damping: 7, stiffness: 450, delay: i * 0.04 },
   }),
 };
 
@@ -33,7 +33,6 @@ export default function Skills() {
     <section id="skills" className="section-pad border-t border-frame">
       <div className="container">
 
-        {/* Header slides from right */}
         <motion.div
           variants={fromRight}
           initial="hidden"
@@ -47,7 +46,6 @@ export default function Skills() {
           </h2>
         </motion.div>
 
-        {/* Notion-style property rows — each slides from left */}
         <div className="divide-y divide-frame">
           {skills.map((group, i) => (
             <motion.div
@@ -85,10 +83,10 @@ export default function Skills() {
         </div>
 
         <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 20, scale: 0.9 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
           viewport={{ once: true, margin: "-30px" }}
-          transition={{ type: "spring", damping: 22, stiffness: 200, delay: 0.3 }}
+          transition={{ type: "spring", damping: 10, stiffness: 260, delay: 0.3 }}
           className="mt-8 text-xs text-muted font-mono"
         >
           + whatever is needed. I pick up tools fast.

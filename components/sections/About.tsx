@@ -3,28 +3,28 @@
 import { motion } from "framer-motion";
 import { Brain, Code, Rocket } from "@phosphor-icons/react";
 
-/* Slide in from left — used for the section header */
+/* Header slams from left */
 const fromLeft = {
-  hidden:  { opacity: 0, x: -52, filter: "blur(6px)" },
-  visible: { opacity: 1, x: 0, filter: "blur(0px)",
-    transition: { type: "spring" as const, damping: 22, stiffness: 160 } },
+  hidden:  { opacity: 0, x: -70, filter: "blur(8px)" },
+  visible: { opacity: 1, x: 0,   filter: "blur(0px)",
+    transition: { type: "spring" as const, damping: 12, stiffness: 180 } },
 };
 
-/* Bounce up from below — used for body paragraphs */
+/* Paragraphs bounce up hard */
 const bounceUp = {
-  hidden:  { opacity: 0, y: 50, scale: 0.96 },
+  hidden:  { opacity: 0, y: 60, scale: 0.93 },
   visible: (i: number) => ({
     opacity: 1, y: 0, scale: 1,
-    transition: { type: "spring" as const, damping: 16, stiffness: 200, delay: i * 0.1 },
+    transition: { type: "spring" as const, damping: 10, stiffness: 260, delay: i * 0.1 },
   }),
 };
 
-/* Slide from right — used for stats column */
+/* Stats fly in from the right */
 const fromRight = {
-  hidden:  { opacity: 0, x: 52 },
+  hidden:  { opacity: 0, x: 70 },
   visible: (i: number) => ({
     opacity: 1, x: 0,
-    transition: { type: "spring" as const, damping: 22, stiffness: 180, delay: i * 0.12 },
+    transition: { type: "spring" as const, damping: 10, stiffness: 240, delay: i * 0.12 },
   }),
 };
 
@@ -39,7 +39,6 @@ export default function About() {
     <section id="about" className="section-pad border-t border-frame">
       <div className="container">
 
-        {/* Section header — slides from left */}
         <motion.div
           variants={fromLeft}
           initial="hidden"
@@ -55,10 +54,9 @@ export default function About() {
           </h2>
         </motion.div>
 
-        {/* Two-column layout */}
         <div className="grid md:grid-cols-[3fr_2fr] gap-12 lg:gap-20 items-start">
 
-          {/* Text column — paragraphs bounce up with stagger */}
+          {/* Text column */}
           <div className="space-y-5">
             {[
               "I'm a Computer Science student with a deep interest in AI systems — not just as tools, but as a design medium. The way large language models reshape how we write software, build products, and communicate ideas is something I think about daily.",
@@ -80,12 +78,12 @@ export default function About() {
 
             <div className="divider my-6" />
 
-            {/* Philosophy quote — scale + fade */}
+            {/* Philosophy quote — pops in with scale */}
             <motion.figure
-              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              initial={{ opacity: 0, scale: 0.88, y: 30 }}
               whileInView={{ opacity: 1, scale: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
-              transition={{ type: "spring", damping: 18, stiffness: 200, delay: 0.3 }}
+              transition={{ type: "spring", damping: 10, stiffness: 280, delay: 0.2 }}
               className="rounded-xl p-5"
               style={{ background: "var(--surface)" }}
             >
@@ -99,7 +97,7 @@ export default function About() {
             </motion.figure>
           </div>
 
-          {/* Stats column — slides from right with stagger */}
+          {/* Stats column — each card flies from right */}
           <div className="flex flex-col gap-4 md:sticky md:top-28">
             {stats.map(({ icon: Icon, value, label }, i) => (
               <motion.div
@@ -122,7 +120,6 @@ export default function About() {
               </motion.div>
             ))}
 
-            {/* Currently studying — slides from right last */}
             <motion.div
               custom={3}
               variants={fromRight}

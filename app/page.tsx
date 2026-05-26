@@ -2,27 +2,30 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar     from "@/components/Navbar";
-import Hero       from "@/components/sections/Hero";
-import About      from "@/components/sections/About";
-import Projects   from "@/components/sections/Projects";
-import Skills     from "@/components/sections/Skills";
-import Contact    from "@/components/sections/Contact";
-import GamePortal from "@/components/GamePortal";
-import Footer     from "@/components/Footer";
+import Navbar            from "@/components/Navbar";
+import BackgroundAmbience from "@/components/BackgroundAmbience";
+import Hero               from "@/components/sections/Hero";
+import About              from "@/components/sections/About";
+import Projects           from "@/components/sections/Projects";
+import Skills             from "@/components/sections/Skills";
+import Contact            from "@/components/sections/Contact";
+import GamePortal         from "@/components/GamePortal";
+import Footer             from "@/components/Footer";
 
 export default function Home() {
   const [gameOpen, setGameOpen] = useState(false);
 
   return (
     <>
+      <BackgroundAmbience />
       <Navbar />
 
       {/*
-       * motion.main scales + blurs when the game portal opens,
-       * creating an iOS-style "app launching over the content" feel.
+       * motion.main scales + blurs when the game portal opens.
+       * relative z-10 keeps it above the fixed BackgroundAmbience (z-0).
        */}
       <motion.main
+        className="relative z-10"
         animate={{
           scale:   gameOpen ? 0.96 : 1,
           opacity: gameOpen ? 0    : 1,
