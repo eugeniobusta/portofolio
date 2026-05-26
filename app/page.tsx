@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import Navbar            from "@/components/Navbar";
+import { AnimatePresence } from "framer-motion";
+import Navbar             from "@/components/Navbar";
 import BackgroundAmbience from "@/components/BackgroundAmbience";
 import Hero               from "@/components/sections/Hero";
 import About              from "@/components/sections/About";
@@ -13,38 +13,41 @@ import GamePortal         from "@/components/GamePortal";
 import Footer             from "@/components/Footer";
 
 export default function Home() {
-  const [gameOpen, setGameOpen] = useState(false);
+  const [isCollapsing, setIsCollapsing] = useState(false);
+  const [gameOpen,     setGameOpen]     = useState(false);
+
+  const handleGameOpen = () => {
+    if (isCollapsing || gameOpen) return;
+    setIsCollapsing(true);
+    /* Portal opens after the collapse animation has time to play out */
+    setTimeout(() => setGameOpen(true), 1250);
+  };
+
+  const handleGameClose = () => {
+    setGameOpen(false);
+    /* Reset so letters snap back while portal exit covers the screen */
+    setTimeout(() => setIsCollapsing(false), 50);
+  };
 
   return (
     <>
       <BackgroundAmbience />
-      <Navbar />
+      <Navbar isCollapsing={isCollapsing} />
 
-      {/*
-       * motion.main scales + blurs when the game portal opens.
-       * relative z-10 keeps it above the fixed BackgroundAmbience (z-0).
-       */}
-      <motion.main
-        className="relative z-10"
-        animate={{
-          scale:   gameOpen ? 0.96 : 1,
-          opacity: gameOpen ? 0    : 1,
-          filter:  gameOpen ? "blur(4px)" : "blur(0px)",
-        }}
-        transition={{ type: "spring", damping: 32, stiffness: 280, mass: 0.9 }}
-        style={{ pointerEvents: gameOpen ? "none" : "auto" }}
-      >
-        <Hero     onGameOpen={() => setGameOpen(true)} />
+      <main className="relative z-10" style={{ pointerEvents: gameOpen ? "none" : "auto" }}>
+        <Hero
+          onGameOpen={handleGameOpen}
+          isCollapsing={isCollapsing}
+        />
         <About    />
         <Projects />
         <Skills   />
         <Contact  />
         <Footer   />
-      </motion.main>
+      </main>
 
-      {/* AnimatePresence runs exit animation before portal is removed from DOM */}
       <AnimatePresence>
-        {gameOpen && <GamePortal onClose={() => setGameOpen(false)} />}
+        {gameOpen && <GamePortal onClose={handleGameClose} />}
       </AnimatePresence>
     </>
   );

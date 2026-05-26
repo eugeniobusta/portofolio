@@ -11,7 +11,7 @@ const links = [
   { label: "Contact",  href: "#contact",  id: "contact"  },
 ];
 
-export default function Navbar() {
+export default function Navbar({ isCollapsing = false }: { isCollapsing?: boolean }) {
   const [scrolled,       setScrolled]       = useState(false);
   const [menuOpen,       setMenuOpen]       = useState(false);
   const [dark,           setDark]           = useState(false);
@@ -71,8 +71,12 @@ export default function Navbar() {
       <header className="fixed top-0 left-0 right-0 z-40 flex justify-center pt-5 px-4">
         <motion.nav
           initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          animate={isCollapsing
+            ? { y: -110, opacity: 0, scale: 0.88 }
+            : { y: 0,    opacity: 1, scale: 1    }}
+          transition={isCollapsing
+            ? { duration: 0.45, ease: [0.42, 0, 1, 1], delay: 0 }
+            : { duration: 0.60, ease: [0.16, 1, 0.3, 1] }}
           className={[
             "flex items-center gap-6 px-4 py-2.5 rounded-full transition-all duration-300 border",
             scrolled
