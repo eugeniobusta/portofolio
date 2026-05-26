@@ -38,6 +38,30 @@
   --tag-red-text:   oklch(35%   0.12  25);
 }
 
+/* ─── DARK MODE (greyish, not black) ────────────────────────────────────────
+ * Applied when <html> has the "dark" class.
+ * Toggle is in the Navbar. Preference is saved to localStorage.
+ */
+html.dark {
+  --paper:          oklch(19%   0.008 250);
+  --surface:        oklch(23%   0.008 250);
+  --frame:          oklch(30%   0.008 250);
+  --frame-strong:   oklch(38%   0.008 250);
+  --ink:            oklch(88%   0.005 85);
+  --muted:          oklch(60%   0.006 250);
+  --accent:         oklch(72%   0.155 68);
+  --accent-dim:     oklch(62%   0.155 68);
+
+  --tag-amber-bg:   oklch(28%   0.05  68);
+  --tag-amber-text: oklch(78%   0.12  68);
+  --tag-blue-bg:    oklch(26%   0.04  250);
+  --tag-blue-text:  oklch(75%   0.1   250);
+  --tag-green-bg:   oklch(26%   0.04  145);
+  --tag-green-text: oklch(74%   0.1   145);
+  --tag-red-bg:     oklch(26%   0.04  25);
+  --tag-red-text:   oklch(74%   0.12  25);
+}
+
 /* ─── ALTERNATIVE: Electric / Blue accent ─────────────────────────────────
 :root {
   --paper:          oklch(100%  0     0);

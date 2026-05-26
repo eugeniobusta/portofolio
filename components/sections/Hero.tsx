@@ -30,26 +30,9 @@ export default function Hero({ onGameOpen }: HeroProps) {
       <div className="container">
         <div className="max-w-3xl pt-28 pb-16">
 
-          {/* Eyebrow badge */}
-          <motion.div
-            custom={0}
-            variants={fadeUp}
-            initial="hidden"
-            animate="visible"
-            className="mb-8"
-          >
-            <span className="eyebrow">
-              <span
-                className="w-1.5 h-1.5 rounded-full animate-pulse"
-                style={{ background: "var(--tag-green-text)" }}
-              />
-              CS Student · Open to opportunities
-            </span>
-          </motion.div>
-
           {/* Name — Instrument Serif, large and tight */}
           <motion.h1
-            custom={1}
+            custom={0}
             variants={fadeUp}
             initial="hidden"
             animate="visible"
@@ -62,7 +45,7 @@ export default function Hero({ onGameOpen }: HeroProps) {
 
           {/* Tagline */}
           <motion.p
-            custom={2}
+            custom={1}
             variants={fadeUp}
             initial="hidden"
             animate="visible"
@@ -74,7 +57,7 @@ export default function Hero({ onGameOpen }: HeroProps) {
 
           {/* Philosophy quote — the user specifically asked for this */}
           <motion.blockquote
-            custom={3}
+            custom={2}
             variants={fadeUp}
             initial="hidden"
             animate="visible"
@@ -87,7 +70,7 @@ export default function Hero({ onGameOpen }: HeroProps) {
 
           {/* CTAs */}
           <motion.div
-            custom={4}
+            custom={3}
             variants={fadeUp}
             initial="hidden"
             animate="visible"
@@ -137,7 +120,7 @@ export default function Hero({ onGameOpen }: HeroProps) {
 
           {/* Social links */}
           <motion.div
-            custom={5}
+            custom={4}
             variants={fadeUp}
             initial="hidden"
             animate="visible"
@@ -155,7 +138,7 @@ export default function Hero({ onGameOpen }: HeroProps) {
             </a>
             <span className="text-frame-strong text-xs" aria-hidden>·</span>
             <a
-              href="linkedin.com/in/eugenio-bustamante-4018522ba"
+              href="https://linkedin.com/in/eugenio-bustamante-4018522ba"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-sm text-muted hover:text-ink transition-colors duration-200"
