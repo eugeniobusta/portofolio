@@ -212,3 +212,33 @@ body {
   height: 1px;
   background: var(--frame);
 }
+
+/* ─── PROJECT VISUAL KEYFRAMES ─────────────────────────────────────────────*/
+
+@keyframes float-card {
+  0%, 100% { transform: translateY(0px) rotate(-1.5deg); }
+  50%       { transform: translateY(-10px) rotate(-1.5deg); }
+}
+
+@keyframes float-card-back {
+  0%, 100% { transform: translateY(0px) rotate(2deg); }
+  50%       { transform: translateY(-5px) rotate(2deg); }
+}
+
+@keyframes wave-1 { 0%, 100% { transform: scaleY(0.3); } 40% { transform: scaleY(1.0); } }
+@keyframes wave-2 { 0%, 100% { transform: scaleY(0.6); } 55% { transform: scaleY(0.15); } }
+@keyframes wave-3 { 0%, 100% { transform: scaleY(0.4); } 50% { transform: scaleY(1.0); } }
+@keyframes wave-4 { 0%, 100% { transform: scaleY(1.0); } 45% { transform: scaleY(0.25); } }
+@keyframes wave-5 { 0%, 100% { transform: scaleY(0.2); } 60% { transform: scaleY(0.85); } }
+@keyframes wave-6 { 0%, 100% { transform: scaleY(0.7); } 35% { transform: scaleY(0.1); } }
+@keyframes wave-7 { 0%, 100% { transform: scaleY(0.5); } 50% { transform: scaleY(0.9); } }
+
+@keyframes match-blink {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 oklch(65% 0.15 145 / 0.5); }
+  50%       { opacity: 0.7; box-shadow: 0 0 0 6px oklch(65% 0.15 145 / 0); }
+}
+
+@keyframes ping-soft {
+  0%    { transform: scale(1);   opacity: 0.6; }
+  100%  { transform: scale(1.6); opacity: 0;   }
+}

@@ -3,19 +3,35 @@
 import { motion } from "framer-motion";
 import { Brain, Code, Rocket } from "@phosphor-icons/react";
 
-const reveal = {
-  hidden:  { opacity: 0, y: 14 },
-  visible: (i: number = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring" as const, damping: 28, stiffness: 200, delay: i * 0.08 },
+/* Slide in from left — used for the section header */
+const fromLeft = {
+  hidden:  { opacity: 0, x: -52, filter: "blur(6px)" },
+  visible: { opacity: 1, x: 0, filter: "blur(0px)",
+    transition: { type: "spring" as const, damping: 22, stiffness: 160 } },
+};
+
+/* Bounce up from below — used for body paragraphs */
+const bounceUp = {
+  hidden:  { opacity: 0, y: 50, scale: 0.96 },
+  visible: (i: number) => ({
+    opacity: 1, y: 0, scale: 1,
+    transition: { type: "spring" as const, damping: 16, stiffness: 200, delay: i * 0.1 },
+  }),
+};
+
+/* Slide from right — used for stats column */
+const fromRight = {
+  hidden:  { opacity: 0, x: 52 },
+  visible: (i: number) => ({
+    opacity: 1, x: 0,
+    transition: { type: "spring" as const, damping: 22, stiffness: 180, delay: i * 0.12 },
   }),
 };
 
 const stats = [
-  { icon: Code,   value: "4",      label: "projects shipped" },
-  { icon: Brain,  value: "∞",      label: "AI rabbit holes"  },
-  { icon: Rocket, value: "2025",   label: "cohort"           },
+  { icon: Code,   value: "5",    label: "projects shipped" },
+  { icon: Brain,  value: "∞",    label: "AI rabbit holes"  },
+  { icon: Rocket, value: "2025", label: "cohort"           },
 ];
 
 export default function About() {
@@ -23,9 +39,9 @@ export default function About() {
     <section id="about" className="section-pad border-t border-frame">
       <div className="container">
 
-        {/* Section header */}
+        {/* Section header — slides from left */}
         <motion.div
-          variants={reveal}
+          variants={fromLeft}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
@@ -39,10 +55,10 @@ export default function About() {
           </h2>
         </motion.div>
 
-        {/* Two-column layout: text left, stats right */}
+        {/* Two-column layout */}
         <div className="grid md:grid-cols-[3fr_2fr] gap-12 lg:gap-20 items-start">
 
-          {/* Text column */}
+          {/* Text column — paragraphs bounce up with stagger */}
           <div className="space-y-5">
             {[
               "I'm a Computer Science student with a deep interest in AI systems — not just as tools, but as a design medium. The way large language models reshape how we write software, build products, and communicate ideas is something I think about daily.",
@@ -51,26 +67,25 @@ export default function About() {
             ].map((text, i) => (
               <motion.p
                 key={i}
-                custom={i + 1}
-                variants={reveal}
+                custom={i}
+                variants={bounceUp}
                 initial="hidden"
                 whileInView="visible"
-                viewport={{ once: true, margin: "-60px" }}
+                viewport={{ once: true, margin: "-40px" }}
                 className="text-base text-muted leading-relaxed"
               >
                 {text}
               </motion.p>
             ))}
 
-            {/* Divider with a horizontal rule that looks intentional */}
             <div className="divider my-6" />
 
-            {/* The philosophy statement the user asked for, styled as a figure */}
+            {/* Philosophy quote — scale + fade */}
             <motion.figure
-              variants={reveal}
-              initial="hidden"
-              whileInView="visible"
+              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              whileInView={{ opacity: 1, scale: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
+              transition={{ type: "spring", damping: 18, stiffness: 200, delay: 0.3 }}
               className="rounded-xl p-5"
               style={{ background: "var(--surface)" }}
             >
@@ -84,36 +99,36 @@ export default function About() {
             </motion.figure>
           </div>
 
-          {/* Stats column */}
-          <motion.div
-            variants={reveal}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-60px" }}
-            className="flex flex-col gap-4 md:sticky md:top-28"
-          >
-            {stats.map(({ icon: Icon, value, label }) => (
-              <div
+          {/* Stats column — slides from right with stagger */}
+          <div className="flex flex-col gap-4 md:sticky md:top-28">
+            {stats.map(({ icon: Icon, value, label }, i) => (
+              <motion.div
                 key={label}
+                custom={i}
+                variants={fromRight}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-40px" }}
                 className="flex items-center gap-4 p-4 rounded-xl border border-frame bg-surface"
               >
-                <span
-                  className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: "var(--paper)" }}
-                >
+                <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ background: "var(--paper)" }}>
                   <Icon size={18} weight="duotone" className="text-muted" />
                 </span>
                 <div>
-                  <div className="font-serif text-2xl leading-none text-ink tracking-tight">
-                    {value}
-                  </div>
+                  <div className="font-serif text-2xl leading-none text-ink tracking-tight">{value}</div>
                   <div className="text-xs text-muted mt-0.5">{label}</div>
                 </div>
-              </div>
+              </motion.div>
             ))}
 
-            {/* Currently learning card */}
-            <div
+            {/* Currently studying — slides from right last */}
+            <motion.div
+              custom={3}
+              variants={fromRight}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-40px" }}
               className="p-4 rounded-xl border border-frame mt-2"
               style={{ background: "var(--surface)" }}
             >
@@ -125,8 +140,8 @@ export default function About() {
                   <span key={t} className="tag tag-amber">{t}</span>
                 ))}
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </div>
       </div>
     </section>

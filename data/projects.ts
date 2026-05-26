@@ -18,6 +18,7 @@ export interface Project {
   status: "live" | "dev" | "complete";
   year: string;
   featured?: boolean;
+  visual: "pitch" | "cosmosbusta" | "voice" | "startup" | "tennis";
 }
 
 export interface Idea {
@@ -45,6 +46,7 @@ export const projects: Project[] = [
     status: "dev",
     year: "2025",
     featured: true,
+    visual: "pitch",
   },
   {
     id: "cosmosbusta",
@@ -61,6 +63,7 @@ export const projects: Project[] = [
     live: null,
     status: "dev",
     year: "2025",
+    visual: "cosmosbusta",
   },
   {
     id: "voice-calendar",
@@ -78,6 +81,7 @@ export const projects: Project[] = [
     live: null,
     status: "complete",
     year: "2025",
+    visual: "voice",
   },
   {
     id: "startup-match",
@@ -94,6 +98,24 @@ export const projects: Project[] = [
     live: null,
     status: "dev",
     year: "2025",
+    visual: "startup",
+  },
+  {
+    id: "social-tennis",
+    title: "Social Tennis",
+    description:
+      "Marketing and community website for DCU's social tennis club. Built with Sanity CMS for content updates, session listings, gallery, and announcements — all manageable by the committee without code.",
+    stack: [
+      { name: "React", color: "blue" },
+      { name: "Vite", color: "amber" },
+      { name: "Sanity CMS", color: "red" },
+      { name: "JavaScript", color: "amber" },
+    ],
+    github: null,
+    live: null,
+    status: "complete",
+    year: "2025",
+    visual: "tennis",
   },
 ];
 

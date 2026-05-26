@@ -3,18 +3,33 @@
 import { motion } from "framer-motion";
 import { ArrowDown, ArrowRight, GithubLogo, LinkedinLogo } from "@phosphor-icons/react";
 
-/*
- * fadeUp: a reusable animation variant.
- * In Framer Motion, "variants" are named animation states.
- * The parent can stagger children by setting `staggerChildren`.
- */
-const fadeUp = {
-  hidden: { opacity: 0, y: 14 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring" as const, damping: 28, stiffness: 200, delay: i * 0.1 },
-  }),
+/* Each element enters from a different direction for visual dynamism */
+const heroAnim: Record<number, object> = {
+  0: { // Name — slides from left with blur
+    hidden: { opacity: 0, x: -60, filter: "blur(8px)" },
+    visible: { opacity: 1, x: 0, filter: "blur(0px)",
+      transition: { type: "spring" as const, damping: 22, stiffness: 140 } },
+  },
+  1: { // Tagline — slides from right
+    hidden: { opacity: 0, x: 40, filter: "blur(6px)" },
+    visible: { opacity: 1, x: 0, filter: "blur(0px)",
+      transition: { type: "spring" as const, damping: 24, stiffness: 160, delay: 0.1 } },
+  },
+  2: { // Quote — scales up from slightly smaller
+    hidden: { opacity: 0, scale: 0.92, y: 12 },
+    visible: { opacity: 1, scale: 1, y: 0,
+      transition: { type: "spring" as const, damping: 20, stiffness: 200, delay: 0.2 } },
+  },
+  3: { // CTAs — bounce up from below
+    hidden: { opacity: 0, y: 40, scale: 0.95 },
+    visible: { opacity: 1, y: 0, scale: 1,
+      transition: { type: "spring" as const, damping: 16, stiffness: 220, delay: 0.3 } },
+  },
+  4: { // Social links — fade up
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0,
+      transition: { type: "spring" as const, damping: 24, stiffness: 200, delay: 0.45 } },
+  },
 };
 
 interface HeroProps {
@@ -30,10 +45,9 @@ export default function Hero({ onGameOpen }: HeroProps) {
       <div className="container">
         <div className="max-w-3xl pt-28 pb-16">
 
-          {/* Name — Instrument Serif, large and tight */}
+          {/* Name — slides from left */}
           <motion.h1
-            custom={0}
-            variants={fadeUp}
+            variants={heroAnim[0] as never}
             initial="hidden"
             animate="visible"
             className="font-serif text-[clamp(3.5rem,10vw,7rem)] leading-[0.95] tracking-[-0.03em] text-ink mb-6"
@@ -43,10 +57,9 @@ export default function Hero({ onGameOpen }: HeroProps) {
             Bustamante.
           </motion.h1>
 
-          {/* Tagline */}
+          {/* Tagline — slides from right */}
           <motion.p
-            custom={1}
-            variants={fadeUp}
+            variants={heroAnim[1] as never}
             initial="hidden"
             animate="visible"
             className="text-lg text-muted leading-relaxed max-w-md mb-8"
@@ -55,10 +68,9 @@ export default function Hero({ onGameOpen }: HeroProps) {
             Currently obsessed with what happens when AI meets real products.
           </motion.p>
 
-          {/* Philosophy quote — the user specifically asked for this */}
+          {/* Philosophy quote — scales up */}
           <motion.blockquote
-            custom={2}
-            variants={fadeUp}
+            variants={heroAnim[2] as never}
             initial="hidden"
             animate="visible"
             className="mb-10 px-5 py-4 rounded-lg text-sm text-muted italic leading-relaxed"
@@ -68,10 +80,9 @@ export default function Hero({ onGameOpen }: HeroProps) {
             in simple ways.
           </motion.blockquote>
 
-          {/* CTAs */}
+          {/* CTAs — bounce up */}
           <motion.div
-            custom={3}
-            variants={fadeUp}
+            variants={heroAnim[3] as never}
             initial="hidden"
             animate="visible"
             className="flex flex-wrap items-center gap-3"
@@ -118,10 +129,9 @@ export default function Hero({ onGameOpen }: HeroProps) {
             </button>
           </motion.div>
 
-          {/* Social links */}
+          {/* Social links — fade up */}
           <motion.div
-            custom={4}
-            variants={fadeUp}
+            variants={heroAnim[4] as never}
             initial="hidden"
             animate="visible"
             className="mt-12 flex items-center gap-5"
