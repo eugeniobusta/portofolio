@@ -1,0 +1,190 @@
+@import "tailwindcss";
+
+/*
+ * ─── DESIGN TOKENS: Warm Editorial Theme ───────────────────────────────────
+ *
+ * OKLCH = Oklch Lightness Chroma Hue
+ *   L: 0-100%  (perceptual lightness — always predictable)
+ *   C: 0-0.37  (how saturated / colorful)
+ *   H: 0-360°  (hue angle on the color wheel — 85 ≈ warm yellow)
+ *
+ * To switch themes: comment this :root block, uncomment one of the
+ * alternatives below. That's all you need.
+ */
+
+:root {
+  /* Canvas layers */
+  --paper:          oklch(97.5% 0.006 85);   /* page background — warm cream   */
+  --surface:        oklch(95.5% 0.007 85);   /* card backgrounds                */
+  --frame:          oklch(89.5% 0.006 85);   /* borders, dividers               */
+  --frame-strong:   oklch(81%   0.008 85);   /* stronger borders                */
+
+  /* Text */
+  --ink:            oklch(17%   0.008 250);  /* primary text — near-black       */
+  --muted:          oklch(52%   0.006 250);  /* secondary/label text            */
+
+  /* Accent (amber) — used sparingly, ≤10% of surface area */
+  --accent:         oklch(72%   0.155 68);
+  --accent-dim:     oklch(62%   0.155 68);
+
+  /* Pastel tag backgrounds (per minimalist-ui skill spec) */
+  --tag-amber-bg:   oklch(95%   0.04  85);
+  --tag-amber-text: oklch(40%   0.12  68);
+  --tag-blue-bg:    oklch(95%   0.025 250);
+  --tag-blue-text:  oklch(35%   0.1   250);
+  --tag-green-bg:   oklch(95%   0.04  145);
+  --tag-green-text: oklch(35%   0.1   145);
+  --tag-red-bg:     oklch(95%   0.03  25);
+  --tag-red-text:   oklch(35%   0.12  25);
+}
+
+/* ─── ALTERNATIVE: Electric / Blue accent ─────────────────────────────────
+:root {
+  --paper:          oklch(100%  0     0);
+  --surface:        oklch(97%   0.002 250);
+  --frame:          oklch(91%   0.004 250);
+  --frame-strong:   oklch(82%   0.006 250);
+  --ink:            oklch(10%   0.01  250);
+  --muted:          oklch(50%   0.006 250);
+  --accent:         oklch(58%   0.2   255);
+  --accent-dim:     oklch(48%   0.2   255);
+}
+*/
+
+/* ─── ALTERNATIVE: Night / Dark ────────────────────────────────────────────
+:root {
+  --paper:          oklch(12%   0.008 250);
+  --surface:        oklch(16%   0.008 250);
+  --frame:          oklch(24%   0.008 250);
+  --frame-strong:   oklch(32%   0.008 250);
+  --ink:            oklch(93%   0.005 85);
+  --muted:          oklch(62%   0.005 85);
+  --accent:         oklch(72%   0.15  145);
+  --accent-dim:     oklch(62%   0.15  145);
+}
+*/
+
+/*
+ * @theme inline — registers CSS variables as Tailwind utility classes.
+ * --color-paper → bg-paper, text-paper, border-paper, ring-paper, etc.
+ * --font-serif  → font-serif class
+ */
+@theme inline {
+  --color-paper:        var(--paper);
+  --color-surface:      var(--surface);
+  --color-frame:        var(--frame);
+  --color-frame-strong: var(--frame-strong);
+  --color-ink:          var(--ink);
+  --color-muted:        var(--muted);
+  --color-accent:       var(--accent);
+  --color-accent-dim:   var(--accent-dim);
+
+  --font-sans:  var(--font-geist-sans),  system-ui, sans-serif;
+  --font-serif: var(--font-instrument),  Georgia,   serif;
+  --font-mono:  var(--font-geist-mono),  monospace;
+
+  /* Spring easing curve — used by all transitions (matches Framer Motion spring feel) */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ─── RESET + BASE ──────────────────────────────────────────────────────────*/
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* ─── LAYOUT PRIMITIVES ─────────────────────────────────────────────────────*/
+
+.container {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 5vw, 3rem);
+}
+
+.section-pad { padding-block: clamp(5rem, 10vw, 8rem); }
+
+/* ─── TYPOGRAPHIC UTILITIES ─────────────────────────────────────────────────*/
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--frame);
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+/* ─── COMPONENT PRIMITIVES ──────────────────────────────────────────────────*/
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.6875rem;
+  font-family: var(--font-mono);
+  padding: 0.1875rem 0.5rem;
+  border-radius: 4px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.tag-amber { background: var(--tag-amber-bg); color: var(--tag-amber-text); }
+.tag-blue  { background: var(--tag-blue-bg);  color: var(--tag-blue-text);  }
+.tag-green { background: var(--tag-green-bg); color: var(--tag-green-text); }
+.tag-red   { background: var(--tag-red-bg);   color: var(--tag-red-text);   }
+.tag-plain {
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--frame);
+}
+
+/* Project card */
+.project-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--frame);
+  border-radius: 12px;
+  padding: 1.75rem;
+  overflow: hidden;
+  transition: border-color 200ms var(--ease-spring),
+              box-shadow   200ms var(--ease-spring);
+}
+
+.project-card:hover {
+  border-color: var(--frame-strong);
+  box-shadow: 0 2px 12px oklch(0% 0 0 / 0.04);
+}
+
+/* Divider */
+.divider {
+  width: 100%;
+  height: 1px;
+  background: var(--frame);
+}
