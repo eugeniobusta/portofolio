@@ -343,7 +343,17 @@ function Scene() {
 
     /* loosely follow the car — lerp orbit target toward car position */
     if (orbitRef.current && carRef.current) {
-      (orbitRef.current.target as THREE.Vector3).lerp(carRef.current.position, 0.055);
+      const ctrl = orbitRef.current as any;
+      (ctrl.target as THREE.Vector3).lerp(carRef.current.position, 0.055);
+
+      /* also close the zoom gap: if the camera drifts more than 38 units
+         from the car, gently shrink the orbit radius toward 28.
+         OrbitControls (drei) runs at priority -1 so this executes after it
+         and the updated radius is picked up on the very next frame. */
+      const camDist = camera.position.distanceTo(carRef.current.position);
+      if (camDist > 38 && ctrl.spherical) {
+        ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, 28, 0.04);
+      }
     }
 
     const dt = Math.min(delta, 0.05);
