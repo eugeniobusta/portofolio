@@ -267,3 +267,61 @@ body {
   0%,  100% { transform: translateY(0px)  rotate(0deg);   opacity: 0.4; }
   50%        { transform: translateY(-18px) rotate(180deg); opacity: 0.15; }
 }
+
+/* ─── STARFIELD (dark mode) ─────────────────────────────────────────────────*/
+
+/* Four distinct twinkle patterns — opacity only, no scale */
+@keyframes twinkle-a {
+  0%, 100% { opacity: 0.08; }
+  50%       { opacity: 0.9;  }
+}
+@keyframes twinkle-b {
+  0%, 100% { opacity: 0.12; }
+  25%       { opacity: 0.78; }
+  55%       { opacity: 0.14; }
+  80%       { opacity: 0.88; }
+}
+@keyframes twinkle-c {
+  0%, 100% { opacity: 0.04; }
+  40%       { opacity: 0.55; }
+  70%       { opacity: 0.07; }
+}
+@keyframes twinkle-d {
+  0%, 100% { opacity: 0.18; }
+  30%       { opacity: 0.42; }
+  65%       { opacity: 0.76; }
+}
+
+/* Three slow drift paths — small movements so stars don't streak */
+@keyframes star-drift-1 {
+  0%,  100% { transform: translate(0px,   0px);  }
+  33%        { transform: translate(8px,  -10px); }
+  66%        { transform: translate(-5px,   8px); }
+}
+@keyframes star-drift-2 {
+  0%,  100% { transform: translate(0px,  0px); }
+  40%        { transform: translate(-9px, 6px); }
+  70%        { transform: translate(5px, -7px); }
+}
+@keyframes star-drift-3 {
+  0%,  100% { transform: translate(0px,    0px); }
+  25%        { transform: translate(4px,  -13px); }
+  75%        { transform: translate(-7px,   4px); }
+}
+
+/* ─── LIGHT MODE GEOMETRY ───────────────────────────────────────────────────*/
+
+@keyframes geo-drift-1 {
+  0%,  100% { transform: translate(0px,    0px); }
+  33%        { transform: translate(14px,  -9px); }
+  66%        { transform: translate(-9px,  13px); }
+}
+@keyframes geo-drift-2 {
+  0%,  100% { transform: translate(0px,   0px); }
+  50%        { transform: translate(-16px, 11px); }
+}
+@keyframes geo-drift-3 {
+  0%,  100% { transform: translate(0px,    0px); }
+  40%        { transform: translate(11px, -14px); }
+  80%        { transform: translate(-6px,   9px); }
+}
