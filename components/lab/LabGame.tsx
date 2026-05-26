@@ -335,10 +335,16 @@ function Scene() {
   const speedRef = useRef(0);
   const carPos   = useRef(new THREE.Vector3(0, 1, 0));
   const carYaw   = useRef(0);
+  const orbitRef = useRef<any>(null);
 
   useFrame(({ camera }, delta) => {
     /* prevent camera from clipping through the ground */
     if (camera.position.y < 1.8) camera.position.y = 1.8;
+
+    /* loosely follow the car — lerp orbit target toward car position */
+    if (orbitRef.current && carRef.current) {
+      (orbitRef.current.target as THREE.Vector3).lerp(carRef.current.position, 0.055);
+    }
 
     const dt = Math.min(delta, 0.05);
     const { w, a, s, d } = keys.current;
@@ -396,6 +402,7 @@ function Scene() {
       <Headlights carRef={carRef} />
 
       <OrbitControls
+        ref={orbitRef}
         makeDefault
         enableDamping
         dampingFactor={0.07}
