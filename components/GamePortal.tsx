@@ -29,26 +29,33 @@ export default function GamePortal({ onClose }: GamePortalProps) {
 
   return (
     <motion.div
-      /*
-       * This is the slide-in animation.
-       *
-       * initial:  where the panel starts (off-screen right)
-       * animate:  where it goes (fully visible)
-       * exit:     where it goes when removed (back off-screen right)
-       *
-       * type: "spring" means Framer Motion uses physics simulation.
-       * damping: resistance (higher = less bounce)
-       * stiffness: spring tension (higher = faster snap)
-       */
-      initial={{ x: "100%" }}
-      animate={{ x: 0 }}
-      exit={{ x: "100%" }}
-      transition={{
-        type: "spring",
-        damping: 32,
-        stiffness: 280,
-        mass: 1,
+      /* Falls from the top, bounces on impact, shakes horizontally */
+      variants={{
+        hidden: { y: "-100%" },
+        visible: {
+          y: ["-100%", "0%", "-2.2%", "0.6%", "0%"],
+          x: [0, 0, -7, 7, -4, 2, 0],
+          transition: {
+            y: {
+              duration: 0.95,
+              times: [0, 0.62, 0.77, 0.89, 1],
+              ease: [[0.42, 0, 1, 1], [0, 0, 0.2, 1], "easeOut", "easeOut"] as never,
+            },
+            x: {
+              duration: 0.95,
+              times: [0, 0.61, 0.67, 0.74, 0.81, 0.91, 1],
+              ease: "easeOut",
+            },
+          },
+        },
+        exit: {
+          y: "108%",
+          transition: { duration: 0.42, ease: [0.42, 0, 1, 1] as never },
+        },
       }}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
       className="fixed inset-0 z-50 flex flex-col"
       style={{ background: "oklch(12% 0.008 250)" }}
       role="dialog"
@@ -65,7 +72,7 @@ export default function GamePortal({ onClose }: GamePortalProps) {
           onClick={onClose}
           initial={{ opacity: 0, x: -8 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ delay: 0.72, ease: [0.16, 1, 0.3, 1] }}
           className="group inline-flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-all duration-200"
           style={{ color: "oklch(62% 0.005 85)" }}
           onMouseEnter={(e) => e.currentTarget.style.color = "oklch(93% 0.005 85)"}
@@ -84,7 +91,7 @@ export default function GamePortal({ onClose }: GamePortalProps) {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.78 }}
           className="flex items-center gap-2"
         >
           <GameController size={16} weight="duotone" style={{ color: "var(--accent)" }} />
@@ -104,7 +111,7 @@ export default function GamePortal({ onClose }: GamePortalProps) {
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.35, type: "spring", damping: 20, stiffness: 200 }}
+          transition={{ delay: 0.82, type: "spring", damping: 20, stiffness: 200 }}
         >
           <div
             className="w-20 h-20 rounded-2xl flex items-center justify-center"
@@ -118,7 +125,7 @@ export default function GamePortal({ onClose }: GamePortalProps) {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.42, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ delay: 0.90, ease: [0.16, 1, 0.3, 1] }}
           className="max-w-sm"
         >
           <h2
@@ -140,7 +147,7 @@ export default function GamePortal({ onClose }: GamePortalProps) {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.5, duration: 1 }}
+          transition={{ delay: 0.98, duration: 1 }}
           className="absolute pointer-events-none"
           style={{
             width: "30rem",
@@ -156,7 +163,7 @@ export default function GamePortal({ onClose }: GamePortalProps) {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 1.15 }}
           style={{ color: "oklch(35% 0.005 250)" }}
           className="text-xs font-mono absolute bottom-8"
         >
