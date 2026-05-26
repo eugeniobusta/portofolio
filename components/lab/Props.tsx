@@ -101,8 +101,9 @@ function KeyVisual({
         <boxGeometry args={[KSZ_CAP, KH_CAP, KSZ_CAP]} />
         <meshStandardMaterial color="#9ba0a8" roughness={0.42} metalness={0.06} />
       </mesh>
-      {/* letter printed on top */}
-      <mesh position={[0, KH / 2 + 0.015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      {/* letter printed on top — z=Math.PI flips orientation so letters read correctly
+          from the initial camera angle (looking in +Z, right = −X) */}
+      <mesh position={[0, KH / 2 + 0.015, 0]} rotation={[-Math.PI / 2, 0, Math.PI]}>
         <planeGeometry args={[KSZ_CAP * 0.78, KSZ_CAP * 0.78]} />
         {letterTex
           ? <meshStandardMaterial map={letterTex} roughness={0.3} />
@@ -177,9 +178,9 @@ export function WASDKeys({
 }
 
 /* ─── Mouse ───────────────────────────────────────────────────── */
-const MOUSE_W = 2.6;
+const MOUSE_W = 2.5;
 const MOUSE_D = 4.2;
-const MOUSE_H = 1.5;
+const MOUSE_H = 1.45;
 
 /* anchor on the LEFT wall (mouse lives at negative X) */
 const CABLE_ANCHOR: [number, number, number] = [-44, 0, 8];
@@ -217,7 +218,8 @@ export function Mouse3D({
     if (!car) return;
 
     carPush(body.current, car.position, speedRef.current ?? 0, MOUSE_W * 0.55, dt);
-    stepBody(body.current, dt, MOUSE_H / 2 + 0.05);
+    /* groundOffset=0.02: RoundedBox bottom is at group y=0, so mouse sits on ground */
+    stepBody(body.current, dt, 0.02);
 
     const g = groupRef.current;
     if (g) { g.position.copy(body.current.pos); g.rotation.y = body.current.rotY; }
@@ -251,49 +253,67 @@ export function Mouse3D({
     }
   });
 
-  const C  = "#d0d0d4";
-  const CT = "#d8d8dc";
+  /* Logitech-style light grey mouse */
+  const C_BODY = "#e4e4e6";  // light grey-white
+  const C_BTN  = "#ebebed";  // button top slightly lighter
 
   return (
     <>
       <primitive object={cableLine} />
 
       <group ref={groupRef}>
+        {/* ── main body — RoundedBox sits with bottom at y=0 (group origin) ── */}
         <RoundedBox
           args={[MOUSE_W, MOUSE_H, MOUSE_D]}
-          radius={0.46}
-          smoothness={6}
+          radius={0.22}      // less blobby, more mouse-like
+          smoothness={5}
           position={[0, MOUSE_H / 2, 0]}
           castShadow receiveShadow
         >
-          <meshStandardMaterial color={C} roughness={0.28} metalness={0.04} />
+          <meshStandardMaterial color={C_BODY} roughness={0.28} metalness={0.03} />
         </RoundedBox>
 
-        {/* button panel on top front half */}
-        <RoundedBox
-          args={[MOUSE_W - 0.08, 0.12, MOUSE_D * 0.50]}
-          radius={0.05}
-          smoothness={3}
-          position={[0, MOUSE_H + 0.02, -MOUSE_D * 0.08]}
+        {/* ── top button panel (front half) — slightly lighter ── */}
+        <mesh position={[0, MOUSE_H - 0.05, -MOUSE_D * 0.1]} castShadow>
+          <boxGeometry args={[MOUSE_W - 0.06, 0.18, MOUSE_D * 0.52]} />
+          <meshStandardMaterial color={C_BTN} roughness={0.22} />
+        </mesh>
+
+        {/* ── centre seam dividing L/R buttons ── */}
+        <mesh position={[0, MOUSE_H, -MOUSE_D * 0.1]}>
+          <boxGeometry args={[0.06, 0.22, MOUSE_D * 0.52]} />
+          <meshStandardMaterial color="#666" roughness={0.5} />
+        </mesh>
+
+        {/* ── scroll wheel — pokes above the top surface ── */}
+        <mesh
+          position={[0, MOUSE_H + 0.12, -0.28]}
+          rotation={[Math.PI / 2, 0, 0]}
+          castShadow
         >
-          <meshStandardMaterial color={CT} roughness={0.22} />
-        </RoundedBox>
+          <cylinderGeometry args={[0.28, 0.28, 0.46, 16]} />
+          <meshStandardMaterial color="#404040" roughness={0.65} />
+        </mesh>
+        {/* scroll wheel grip ridges */}
+        {[-0.12, -0.04, 0.04, 0.12].map((dz, i) => (
+          <mesh key={i} position={[0, MOUSE_H + 0.12, -0.28 + dz]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.30, 0.30, 0.04, 16]} />
+            <meshStandardMaterial color="#333" roughness={0.8} />
+          </mesh>
+        ))}
 
-        {/* centre seam */}
-        <mesh position={[0, MOUSE_H + 0.03, -MOUSE_D * 0.08]}>
-          <boxGeometry args={[0.055, 0.14, MOUSE_D * 0.48]} />
-          <meshStandardMaterial color="#888" roughness={0.5} />
+        {/* ── subtle logo indent area ── */}
+        <mesh position={[0, MOUSE_H * 0.65, 0.3]}>
+          <boxGeometry args={[0.8, 0.04, 0.5]} />
+          <meshStandardMaterial color="#d8d8da" roughness={0.4} />
         </mesh>
 
-        {/* scroll wheel */}
-        <mesh position={[0, MOUSE_H * 0.88, -0.12]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-          <cylinderGeometry args={[0.24, 0.24, 0.38, 16]} />
-          <meshStandardMaterial color="#505050" roughness={0.72} />
-        </mesh>
-
-        {/* cable port at back */}
-        <mesh position={[0, MOUSE_H * 0.28, MOUSE_D * 0.48]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.13, 0.13, 0.22, 8]} />
+        {/* ── cable port at back ── */}
+        <mesh
+          position={[0, MOUSE_H * 0.32, MOUSE_D * 0.48]}
+          rotation={[Math.PI / 2, 0, 0]}
+        >
+          <cylinderGeometry args={[0.12, 0.12, 0.20, 8]} />
           <meshStandardMaterial color="#2a2a2a" roughness={0.7} />
         </mesh>
       </group>
