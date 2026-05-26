@@ -15,43 +15,39 @@ export function InfoPoster({ position }: { position: [number, number, number] })
     x.fillStyle = "#ffffff";
     x.fillRect(0, 0, W, H);
 
-    /* thick black border */
+    /* clean black border — no green decorations */
     x.strokeStyle = "#111111";
     x.lineWidth = 20;
     x.strokeRect(10, 10, W - 20, H - 20);
-
-    /* green accent bar at top */
-    x.fillStyle = "#3ecf6a";
-    x.fillRect(22, 22, W - 44, 14);
 
     /* name */
     x.fillStyle = "#111";
     x.font = "bold 78px Georgia, serif";
     x.textAlign = "center";
-    x.fillText("Eugenio Bustamante", W / 2, 112);
+    x.fillText("Eugenio Bustamante", W / 2, 108);
 
-    /* role */
+    /* role — green accent is content, not border decoration */
     x.fillStyle = "#3ecf6a";
     x.font = "bold 36px Georgia, serif";
-    x.fillText("CS Student  ·  AI Builder", W / 2, 158);
+    x.fillText("CS Student  ·  AI Builder", W / 2, 154);
 
-    /* divider */
-    x.strokeStyle = "#cccccc";
+    /* thin divider */
+    x.strokeStyle = "#dddddd";
     x.lineWidth = 1.5;
-    x.beginPath(); x.moveTo(36, 176); x.lineTo(W - 36, 176); x.stroke();
+    x.beginPath(); x.moveTo(36, 172); x.lineTo(W - 36, 172); x.stroke();
 
     /* photo placeholder */
-    x.fillStyle = "#e8e8e8";
-    x.strokeStyle = "#bbbbbb";
+    x.fillStyle = "#eeeeee";
+    x.strokeStyle = "#cccccc";
     x.lineWidth = 1;
-    x.fillRect(36, 192, 310, 430);
-    x.strokeRect(36, 192, 310, 430);
+    x.fillRect(36, 186, 310, 438);
+    x.strokeRect(36, 186, 310, 438);
     x.fillStyle = "#aaaaaa";
     x.font = "20px sans-serif";
     x.textAlign = "center";
-    x.fillText("[ photo ]", 36 + 155, 192 + 222);
+    x.fillText("[ photo ]", 36 + 155, 186 + 226);
 
-    /* bio lines */
+    /* bio */
     x.fillStyle = "#333";
     x.font = "27px Georgia, serif";
     x.textAlign = "left";
@@ -63,12 +59,11 @@ export function InfoPoster({ position }: { position: [number, number, number] })
       "research, and big ideas.",
       "",
     ];
-    bio.forEach((l, i) => x.fillText(l, 370, 220 + i * 44));
+    bio.forEach((l, i) => x.fillText(l, 370, 216 + i * 44));
 
-    /* website */
     x.fillStyle = "#3ecf6a";
-    x.font = "bold 26px Georgia, serif";
-    x.fillText("eugeniobusta.com", 370, 220 + bio.length * 44);
+    x.font = "bold 25px Georgia, serif";
+    x.fillText("eugeniobusta.com", 370, 216 + bio.length * 44);
 
     return new THREE.CanvasTexture(c);
   }, []);
@@ -78,32 +73,40 @@ export function InfoPoster({ position }: { position: [number, number, number] })
   const BOARD_H = 14;
   const POLE_X  = 10.0;
 
+  /*
+   * The poster faces the camera (which is at negative Z).
+   * Board-front is placed at z = -0.12 (closer to camera, showing the
+   * -Z face of the BoxGeometry which maps UVs correctly for that face).
+   * Board-back is at z = +0.12 (further from camera, hidden behind front).
+   */
+  const boardY = POLE_H - BOARD_H / 2 + 0.6;
+
   return (
     <group position={position}>
-      {/* green poles */}
+      {/* uniform-width green poles */}
       {([-POLE_X, POLE_X] as number[]).map((px, i) => (
         <mesh key={i} position={[px, POLE_H / 2, 0]} castShadow>
-          <cylinderGeometry args={[0.22, 0.28, POLE_H, 10]} />
+          <cylinderGeometry args={[0.18, 0.18, POLE_H, 8]} />
           <meshStandardMaterial color="#3ecf6a" roughness={0.55} metalness={0.25} />
         </mesh>
       ))}
 
-      {/* horizontal cross-beam (green) */}
+      {/* horizontal cross-beam */}
       <mesh position={[0, POLE_H - BOARD_H + 0.5, 0]} castShadow>
-        <boxGeometry args={[POLE_X * 2 + 0.55, 0.30, 0.30]} />
+        <boxGeometry args={[POLE_X * 2 + 0.45, 0.28, 0.28]} />
         <meshStandardMaterial color="#2db85a" roughness={0.65} metalness={0.2} />
       </mesh>
 
-      {/* board front — canvas texture */}
+      {/* board front — texture — faces the camera (-Z side) */}
       {texture && (
-        <mesh position={[0, POLE_H - BOARD_H / 2 + 0.6, 0.12]} castShadow receiveShadow>
+        <mesh position={[0, boardY, -0.12]} castShadow receiveShadow>
           <boxGeometry args={[BOARD_W, BOARD_H, 0.18]} />
           <meshStandardMaterial map={texture} roughness={0.45} />
         </mesh>
       )}
 
-      {/* board back */}
-      <mesh position={[0, POLE_H - BOARD_H / 2 + 0.6, -0.12]}>
+      {/* board back — plain — hidden behind front */}
+      <mesh position={[0, boardY, 0.12]}>
         <boxGeometry args={[BOARD_W, BOARD_H, 0.10]} />
         <meshStandardMaterial color="#e0e0e0" roughness={0.85} />
       </mesh>

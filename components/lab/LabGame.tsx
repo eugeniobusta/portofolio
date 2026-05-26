@@ -403,9 +403,11 @@ function Scene() {
       <Pebbles />
 
       {/* scene objects */}
-      <InfoPoster position={[0, 0, 38]} />
-      <WASDKeys groupCenter={[-16, 0, 10]} carRef={carRef} speedRef={speedRef} />
-      <Mouse3D initPos={[17, 0.8, 8]} carRef={carRef} speedRef={speedRef} carBumpRef={carBump} />
+      <InfoPoster position={[0, 0, 46]} />
+      {/* keys appear on LEFT from initial camera angle (world +X = screen left) */}
+      <WASDKeys groupCenter={[16, 0, 10]} carRef={carRef} speedRef={speedRef} />
+      {/* mouse appears on RIGHT from initial camera angle (world -X = screen right) */}
+      <Mouse3D initPos={[-17, 0.8, 8]} carRef={carRef} speedRef={speedRef} carBumpRef={carBump} />
 
       <Jeep outer={carRef} />
       <Smoke carRef={carRef} speedRef={speedRef} />

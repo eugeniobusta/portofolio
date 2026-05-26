@@ -34,7 +34,7 @@ function carPush(b: Body, carPos: THREE.Vector3, carSpeed: number, bodyR: number
   }
 }
 
-/* push two bodies apart — prevents keys from overlapping */
+/* prevents two bodies from overlapping */
 function bodyPush(a: Body, b: Body, minDist: number) {
   const dx = b.pos.x - a.pos.x;
   const dz = b.pos.z - a.pos.z;
@@ -43,52 +43,13 @@ function bodyPush(a: Body, b: Body, minDist: number) {
     const d       = Math.sqrt(d2);
     const nx      = dx / d, nz = dz / d;
     const overlap = minDist - d;
-    /* velocity impulse */
-    const imp = overlap * 0.5;
+    const imp     = overlap * 0.5;
     a.vel.x -= nx * imp;  a.vel.z -= nz * imp;
     b.vel.x += nx * imp;  b.vel.z += nz * imp;
-    /* positional correction so overlap resolves immediately */
     const half = overlap * 0.5;
     a.pos.x -= nx * half; a.pos.z -= nz * half;
     b.pos.x += nx * half; b.pos.z += nz * half;
   }
-}
-
-/* ─── frustum (truncated-pyramid) keycap geometry ─────────────── */
-function makeFrustumGeo(bw: number, bd: number, tw: number, td: number, h: number) {
-  const hh = h / 2;
-  const P: [number, number, number][] = [
-    [-bw/2, -hh, -bd/2], // 0 bottom front-left
-    [ bw/2, -hh, -bd/2], // 1 bottom front-right
-    [ bw/2, -hh,  bd/2], // 2 bottom back-right
-    [-bw/2, -hh,  bd/2], // 3 bottom back-left
-    [-tw/2,  hh, -td/2], // 4 top front-left
-    [ tw/2,  hh, -td/2], // 5 top front-right
-    [ tw/2,  hh,  td/2], // 6 top back-right
-    [-tw/2,  hh,  td/2], // 7 top back-left
-  ];
-  /* each face = 4 unique verts → sharp edges on render */
-  const faces: [number,number,number,number][] = [
-    [0,3,2,1], // bottom  (-Y outward)
-    [4,5,6,7], // top     (+Y outward)
-    [0,1,5,4], // front   (-Z outward)
-    [2,3,7,6], // back    (+Z outward)
-    [3,0,4,7], // left    (-X outward)
-    [1,2,6,5], // right   (+X outward)
-  ];
-  const verts: number[] = [];
-  const idxs:  number[] = [];
-  let vi = 0;
-  for (const [a,b,c,d] of faces) {
-    verts.push(...P[a], ...P[b], ...P[c], ...P[d]);
-    idxs.push(vi, vi+1, vi+2,  vi, vi+2, vi+3);
-    vi += 4;
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(verts), 3));
-  geo.setIndex(idxs);
-  geo.computeVertexNormals();
-  return geo;
 }
 
 /* ─── key letter texture ──────────────────────────────────────── */
@@ -97,23 +58,24 @@ function makeKeyTex(label: string): THREE.CanvasTexture | null {
   const c = document.createElement("canvas");
   c.width = 256; c.height = 256;
   const ctx = c.getContext("2d")!;
-  /* match the keycap body colour exactly so no edge seam */
   ctx.fillStyle = "#9ba0a8";
   ctx.fillRect(0, 0, 256, 256);
-  ctx.fillStyle = "#e8ecf0";
-  ctx.font = "bold 152px Arial, sans-serif";
+  ctx.fillStyle = "#eef0f2";
+  ctx.font = "bold 148px Arial, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(label, 128, 138);
   return new THREE.CanvasTexture(c);
 }
 
-/* ─── key sizes ───────────────────────────────────────────────── */
-const KSZ     = 3.5;   // base footprint
-const KSZ_TOP = 2.9;   // top face (smaller → frustum taper)
-const KH      = 3.2;   // total height — tall & chunky
+/* ─── key sizes — stepped box (solid, no hollow look) ─────────── */
+const KSZ     = 2.7;   // base footprint
+const KSZ_CAP = 2.2;   // cap footprint (narrower than base → stepped ledge)
+const KH_BASE = 0.50;  // lower base/stem height
+const KH_CAP  = 1.30;  // upper keycap height
+const KH      = KH_BASE + KH_CAP; // total height = 1.80
 
-/* ─── KeyVisual: pure mesh, no physics ───────────────────────── */
+/* ─── KeyVisual: solid stepped-box keycap ────────────────────── */
 function KeyVisual({
   label,
   groupRef,
@@ -121,21 +83,27 @@ function KeyVisual({
   label: string;
   groupRef: (r: THREE.Group | null) => void;
 }) {
-  const frustumGeo = useMemo(
-    () => makeFrustumGeo(KSZ, KSZ, KSZ_TOP, KSZ_TOP, KH),
-    []
-  );
   const letterTex = useMemo(() => makeKeyTex(label), [label]);
+
+  /* y-positions relative to group centre (y=0 = mid-height of key) */
+  const baseY = -KH / 2 + KH_BASE / 2;
+  const capY  = -KH / 2 + KH_BASE + KH_CAP / 2;
 
   return (
     <group ref={groupRef}>
-      {/* frustum keycap body */}
-      <mesh geometry={frustumGeo} castShadow receiveShadow>
+      {/* base plate — darker, full width */}
+      <mesh position={[0, baseY, 0]} castShadow receiveShadow>
+        <boxGeometry args={[KSZ, KH_BASE, KSZ]} />
+        <meshStandardMaterial color="#767c86" roughness={0.60} />
+      </mesh>
+      {/* keycap body — lighter, slightly narrower → stepped ledge look */}
+      <mesh position={[0, capY, 0]} castShadow receiveShadow>
+        <boxGeometry args={[KSZ_CAP, KH_CAP, KSZ_CAP]} />
         <meshStandardMaterial color="#9ba0a8" roughness={0.42} metalness={0.06} />
       </mesh>
-      {/* letter printed on top face */}
+      {/* letter printed on top */}
       <mesh position={[0, KH / 2 + 0.015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[KSZ_TOP * 0.78, KSZ_TOP * 0.78]} />
+        <planeGeometry args={[KSZ_CAP * 0.78, KSZ_CAP * 0.78]} />
         {letterTex
           ? <meshStandardMaterial map={letterTex} roughness={0.3} />
           : <meshStandardMaterial color="#9ba0a8" roughness={0.3} />}
@@ -144,16 +112,23 @@ function KeyVisual({
   );
 }
 
-/* key layout */
-const KEY_STEP = KSZ + 0.45;
+/*
+ * Key layout — oriented so the view makes visual sense from the initial
+ * camera angle (camera at z≈-30 looking +Z, where +X appears on LEFT):
+ *   W = back (higher z → appears at top in perspective)
+ *   A = right in world (+X) → appears LEFT on screen
+ *   S = centre
+ *   D = left in world  (-X) → appears RIGHT on screen
+ */
+const KEY_STEP = KSZ + 0.42;
 const KEY_DEFS = [
-  { label: "W", ox: 0,         oz: -KEY_STEP },
-  { label: "A", ox: -KEY_STEP, oz: 0 },
-  { label: "S", ox: 0,         oz: 0 },
-  { label: "D", ox: KEY_STEP,  oz: 0 },
+  { label: "W", ox: 0,          oz: +KEY_STEP },
+  { label: "A", ox: +KEY_STEP,  oz: 0 },
+  { label: "S", ox: 0,          oz: 0 },
+  { label: "D", ox: -KEY_STEP,  oz: 0 },
 ];
 
-/* ─── WASDKeys: centralised physics so keys push each other ───── */
+/* ─── WASDKeys: centralised physics + key-to-key collision ───── */
 export function WASDKeys({
   groupCenter, carRef, speedRef,
 }: {
@@ -176,18 +151,12 @@ export function WASDKeys({
     if (!car) return;
     const bs = bodies.current;
 
-    /* car → each key */
     for (const b of bs) carPush(b, car.position, speedRef.current ?? 0, KSZ * 0.55, dt);
-
-    /* key ↔ key separation (prevents overlapping) */
     for (let i = 0; i < bs.length; i++)
       for (let j = i + 1; j < bs.length; j++)
         bodyPush(bs[i], bs[j], KSZ + 0.18);
-
-    /* integrate */
     for (const b of bs) stepBody(b, dt, KH / 2 + 0.02);
 
-    /* sync meshes */
     for (let i = 0; i < bs.length; i++) {
       const g = groupRefs.current[i];
       if (g) { g.position.copy(bs[i].pos); g.rotation.y = bs[i].rotY; }
@@ -211,7 +180,9 @@ export function WASDKeys({
 const MOUSE_W = 2.6;
 const MOUSE_D = 4.2;
 const MOUSE_H = 1.5;
-const CABLE_ANCHOR: [number, number, number] = [44, 0, 8];
+
+/* anchor on the LEFT wall (mouse lives at negative X) */
+const CABLE_ANCHOR: [number, number, number] = [-44, 0, 8];
 const CABLE_PTS = 32;
 
 export function Mouse3D({
@@ -222,7 +193,7 @@ export function Mouse3D({
   speedRef: React.RefObject<number>;
   carBumpRef: React.RefObject<number>;
 }) {
-  const groupRef  = useRef<THREE.Group>(null!);
+  const groupRef = useRef<THREE.Group>(null!);
   const body = useRef<Body>({
     pos: new THREE.Vector3(...initPos),
     vel: new THREE.Vector3(),
@@ -266,7 +237,7 @@ export function Mouse3D({
     posArr.needsUpdate = true;
     cableGeo.computeBoundingBox();
 
-    /* cable bump detection */
+    /* cable bump */
     const carX = car.position.x, carZ = car.position.z;
     for (let i = 0; i < CABLE_PTS - 1; i++) {
       const t  = i / (CABLE_PTS - 1);
@@ -280,15 +251,14 @@ export function Mouse3D({
     }
   });
 
-  const C  = "#d0d0d4"; // body light grey
-  const CT = "#d8d8dc"; // button top slightly lighter
+  const C  = "#d0d0d4";
+  const CT = "#d8d8dc";
 
   return (
     <>
       <primitive object={cableLine} />
 
       <group ref={groupRef}>
-        {/* rounded main body — smooth organic shell */}
         <RoundedBox
           args={[MOUSE_W, MOUSE_H, MOUSE_D]}
           radius={0.46}
@@ -299,7 +269,7 @@ export function Mouse3D({
           <meshStandardMaterial color={C} roughness={0.28} metalness={0.04} />
         </RoundedBox>
 
-        {/* left + right button panel (top, front half) */}
+        {/* button panel on top front half */}
         <RoundedBox
           args={[MOUSE_W - 0.08, 0.12, MOUSE_D * 0.50]}
           radius={0.05}
@@ -309,27 +279,20 @@ export function Mouse3D({
           <meshStandardMaterial color={CT} roughness={0.22} />
         </RoundedBox>
 
-        {/* centre seam between L/R buttons */}
+        {/* centre seam */}
         <mesh position={[0, MOUSE_H + 0.03, -MOUSE_D * 0.08]}>
           <boxGeometry args={[0.055, 0.14, MOUSE_D * 0.48]} />
           <meshStandardMaterial color="#888" roughness={0.5} />
         </mesh>
 
         {/* scroll wheel */}
-        <mesh
-          position={[0, MOUSE_H * 0.88, -0.12]}
-          rotation={[Math.PI / 2, 0, 0]}
-          castShadow
-        >
+        <mesh position={[0, MOUSE_H * 0.88, -0.12]} rotation={[Math.PI / 2, 0, 0]} castShadow>
           <cylinderGeometry args={[0.24, 0.24, 0.38, 16]} />
           <meshStandardMaterial color="#505050" roughness={0.72} />
         </mesh>
 
         {/* cable port at back */}
-        <mesh
-          position={[0, MOUSE_H * 0.28, MOUSE_D * 0.48]}
-          rotation={[Math.PI / 2, 0, 0]}
-        >
+        <mesh position={[0, MOUSE_H * 0.28, MOUSE_D * 0.48]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.13, 0.13, 0.22, 8]} />
           <meshStandardMaterial color="#2a2a2a" roughness={0.7} />
         </mesh>
