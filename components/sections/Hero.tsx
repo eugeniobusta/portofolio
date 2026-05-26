@@ -144,7 +144,7 @@ export default function Hero({ onGameOpen }: HeroProps) {
             className="mt-12 flex items-center gap-5"
           >
             <a
-              href="https://github.com"
+              href="https://github.com/eugeniobusta"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-sm text-muted hover:text-ink transition-colors duration-200"
@@ -155,7 +155,7 @@ export default function Hero({ onGameOpen }: HeroProps) {
             </a>
             <span className="text-frame-strong text-xs" aria-hidden>·</span>
             <a
-              href="https://linkedin.com"
+              href="linkedin.com/in/eugenio-bustamante-4018522ba"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-sm text-muted hover:text-ink transition-colors duration-200"
