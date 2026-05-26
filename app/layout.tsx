@@ -56,12 +56,6 @@ export const metadata: Metadata = {
     description:
       "CS student building at the intersection of software and intelligence.",
   },
-  icons: {
-    icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", sizes: "any" },
-    ],
-  },
   robots: {
     index: true,
     follow: true,
