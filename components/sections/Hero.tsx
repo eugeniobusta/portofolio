@@ -1,11 +1,11 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { ArrowDown, ArrowRight, GithubLogo, LinkedinLogo } from "@phosphor-icons/react";
 
 /* ─── PHYSICS HELPERS ───────────────────────────────────────────────────── */
 
-/* Seeded PRNG — deterministic, no re-randomise on re-render */
 const rng = (seed: number) => {
   const x = Math.sin(seed * 9301 + 49297) * 233280;
   return x - Math.floor(x);
@@ -13,16 +13,16 @@ const rng = (seed: number) => {
 
 /* Pre-computed fall params for each of the 18 name characters */
 const FALL = Array.from({ length: 25 }, (_, i) => ({
-  x:   (rng(i * 7.31)  - 0.5) * 520,   /* ±260 px horizontal drift  */
-  rot: (rng(i * 11.73) - 0.5) * 760,   /* ±380 ° rotation           */
-  dur: 0.50 + rng(i * 3.17) * 0.40,    /* 0.50 – 0.90 s             */
-  del: rng(i * 5.41) * 0.08,           /* up to 80 ms extra jitter  */
+  x:   (rng(i * 7.31)  - 0.5) * 520,
+  rot: (rng(i * 11.73) - 0.5) * 760,
+  dur: 0.50 + rng(i * 3.17) * 0.40,
+  del: rng(i * 5.41) * 0.08,
 }));
 
-/* Gravity easing — hesitates then accelerates, like real freefall */
+/* Gravity — hesitates then accelerates like real freefall */
 const GRAV = [0.42, 0, 1, 1] as const;
 
-/* ─── ENTRANCE VARIANTS (unchanged feel) ───────────────────────────────── */
+/* ─── ENTRANCE VARIANTS ─────────────────────────────────────────────────── */
 
 const enter = {
   name: {
@@ -53,38 +53,24 @@ const enter = {
 };
 
 /* ─── COLLAPSE TARGETS ──────────────────────────────────────────────────── */
-/* Each element flies to a different destination for a chaotic explosion feel */
 
 const out = {
-  /* tagline tips and falls hard to the lower-left */
   tagline:    { y: "70vh",   x: -70,  rotate: -9,  opacity: 0,
     transition: { duration: 0.70, delay: 0.40, ease: GRAV } },
-
-  /* "simplicity" floats UP — gravity reversed, adds variety */
   simplicity: { y: "-60vh",  x: 40,   rotate: 5,   opacity: 0,
     transition: { duration: 0.55, delay: 0.28, ease: GRAV } },
-
-  /* buttons fly hard in opposite horizontal directions */
   viewWork:   { x: "-110vw", y: 50,   rotate: -20, opacity: 0,
     transition: { duration: 0.60, delay: 0.46, ease: GRAV } },
   enterLab:   { x:  "110vw", y: -35,  rotate: 18,  opacity: 0,
     transition: { duration: 0.60, delay: 0.50, ease: GRAV } },
-
-  /* social links drop straight down */
   social:     { y: "90vh",            rotate: 4,   opacity: 0,
     transition: { duration: 0.55, delay: 0.58, ease: GRAV } },
-
-  /* scroll chevron disappears instantly */
   chevron:    { y: "50vh",                         opacity: 0,
     transition: { duration: 0.30, delay: 0.05, ease: GRAV } },
 };
 
 /* ─── LETTER-BY-LETTER NAME ─────────────────────────────────────────────── */
-/*
- * Lines and their starting global-index offsets:
- *   "Eugenio"     → chars 0–6
- *   "Bustamante." → chars 7–17
- */
+
 const NAME_LINES: [string, number][] = [
   ["Eugenio",     0],
   ["Bustamante.", 7],
@@ -115,7 +101,6 @@ function FallingName({ isCollapsing }: { isCollapsing: boolean }) {
                 }
                 transition={{
                   duration: f.dur,
-                  /* second line starts slightly later for a cascade wave effect */
                   delay:    gi * 0.042 + f.del + (offset > 0 ? 0.10 : 0),
                   ease:     GRAV,
                 }}
@@ -130,7 +115,7 @@ function FallingName({ isCollapsing }: { isCollapsing: boolean }) {
   );
 }
 
-/* ─── COMPONENT ─────────────────────────────────────────────────────────── */
+/* ─── HERO ──────────────────────────────────────────────────────────────── */
 
 interface HeroProps {
   onGameOpen:   () => void;
@@ -138,18 +123,66 @@ interface HeroProps {
 }
 
 export default function Hero({ onGameOpen, isCollapsing }: HeroProps) {
+  const [exploding, setExploding] = useState(false);
+  const [origin,    setOrigin]    = useState({ x: 0, y: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  /* Reset explosion state when the portal is closed (isCollapsing resets to false) */
+  useEffect(() => {
+    if (!isCollapsing) setExploding(false);
+  }, [isCollapsing]);
+
+  const handleEnterLab = () => {
+    if (isCollapsing || exploding) return;
+    /* Capture button center for the explosion origin */
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setOrigin({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+    }
+    setExploding(true);
+    /* Collapse starts 200 ms after explosion so the flash is seen first */
+    setTimeout(onGameOpen, 200);
+  };
+
   return (
     <section
       className="relative min-h-[100dvh] flex flex-col justify-center"
       aria-label="Introduction"
     >
+      {/*
+       * Explosion flash — neon green circle that expands from the button center
+       * and briefly covers the entire viewport before fading.
+       * z-[999] puts it above the nav (z-40) and main (z-10).
+       */}
+      <AnimatePresence>
+        {exploding && (
+          <motion.div
+            key="explosion"
+            className="fixed rounded-full pointer-events-none"
+            style={{
+              zIndex: 999,
+              left:   origin.x,
+              top:    origin.y,
+              width:  60,
+              height: 60,
+              marginLeft: -30,
+              marginTop:  -30,
+              background: "radial-gradient(circle, oklch(92% 0.42 145) 0%, oklch(82% 0.32 145 / 0.55) 45%, transparent 70%)",
+            }}
+            initial={{ scale: 0, opacity: 1 }}
+            animate={{ scale: 65, opacity: 0 }}
+            transition={{ duration: 0.60, ease: [0.05, 0.35, 0.80, 1] }}
+          />
+        )}
+      </AnimatePresence>
+
       <div className="container">
         <div className="max-w-3xl pt-28 pb-16">
 
           {/* Name — letter-by-letter fall on collapse */}
           <FallingName isCollapsing={isCollapsing} />
 
-          {/* Tagline */}
+          {/* Tagline — falls lower-left */}
           <motion.p
             variants={enter.tagline as never}
             initial="hidden"
@@ -160,7 +193,7 @@ export default function Hero({ onGameOpen, isCollapsing }: HeroProps) {
             Currently obsessed with what happens when AI meets real products.
           </motion.p>
 
-          {/* Simplicity line — floats UP on collapse (against gravity for contrast) */}
+          {/* Simplicity — floats UP (against gravity, for visual contrast) */}
           <motion.p
             variants={enter.simplicity as never}
             initial="hidden"
@@ -170,7 +203,7 @@ export default function Hero({ onGameOpen, isCollapsing }: HeroProps) {
             Simplicity is key. I love simplicity.
           </motion.p>
 
-          {/* CTAs — each button explodes in its own direction */}
+          {/* CTAs — buttons explode in opposite horizontal directions */}
           <motion.div
             variants={enter.ctas as never}
             initial="hidden"
@@ -180,7 +213,9 @@ export default function Hero({ onGameOpen, isCollapsing }: HeroProps) {
             <motion.a
               href="#projects"
               initial={false}
-              animate={isCollapsing ? out.viewWork : { x: 0, y: 0, rotate: 0, opacity: 1 }}
+              animate={isCollapsing
+                ? out.viewWork
+                : { x: 0, y: 0, rotate: 0, opacity: 1 }}
               transition={isCollapsing ? undefined : { duration: 0 }}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-ink text-paper text-sm font-medium
                          hover:opacity-85 active:scale-[0.98] transition-all duration-200"
@@ -189,10 +224,17 @@ export default function Hero({ onGameOpen, isCollapsing }: HeroProps) {
               <ArrowDown size={15} weight="bold" />
             </motion.a>
 
+            {/*
+             * Enter the Lab — the button that triggers everything.
+             * On click it fires an explosion flash, then the whole page breaks.
+             */}
             <motion.button
-              onClick={onGameOpen}
+              ref={btnRef}
+              onClick={handleEnterLab}
               initial={false}
-              animate={isCollapsing ? out.enterLab : { x: 0, y: 0, rotate: 0, opacity: 1 }}
+              animate={isCollapsing
+                ? out.enterLab
+                : { x: 0, y: 0, rotate: 0, opacity: 1 }}
               transition={isCollapsing ? undefined : { duration: 0 }}
               className="group inline-flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium
                          border border-frame text-ink bg-paper

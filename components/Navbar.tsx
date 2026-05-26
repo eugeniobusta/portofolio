@@ -11,14 +11,23 @@ const links = [
   { label: "Contact",  href: "#contact",  id: "contact"  },
 ];
 
+const GRAV = [0.42, 0, 1, 1] as const;
+
+/* Per-item fall trajectories — each nav link breaks in a different direction */
+const LINK_FALL = [
+  { x: -90,  rotate:  55, dur: 0.70, del: 0.08 },
+  { x:  35,  rotate: -48, dur: 0.75, del: 0.13 },
+  { x: -55,  rotate:  70, dur: 0.68, del: 0.17 },
+  { x:  75,  rotate: -62, dur: 0.72, del: 0.21 },
+];
+
 export default function Navbar({ isCollapsing = false }: { isCollapsing?: boolean }) {
-  const [scrolled,       setScrolled]       = useState(false);
-  const [menuOpen,       setMenuOpen]       = useState(false);
-  const [dark,           setDark]           = useState(false);
-  const [activeSection,  setActiveSection]  = useState<string>("");
+  const [scrolled,      setScrolled]      = useState(false);
+  const [menuOpen,      setMenuOpen]      = useState(false);
+  const [dark,          setDark]          = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("");
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  /* Scroll detection via IntersectionObserver on a 1px sentinel div at top */
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
@@ -27,7 +36,6 @@ export default function Navbar({ isCollapsing = false }: { isCollapsing?: boolea
     return () => obs.disconnect();
   }, []);
 
-  /* Active section tracking — fires when a section center crosses the viewport midpoint */
   useEffect(() => {
     const observers: IntersectionObserver[] = [];
     links.forEach(({ id }) => {
@@ -43,13 +51,11 @@ export default function Navbar({ isCollapsing = false }: { isCollapsing?: boolea
     return () => observers.forEach((o) => o.disconnect());
   }, []);
 
-  /* Restore saved theme on mount */
   useEffect(() => {
     const saved = localStorage.getItem("theme");
     if (saved === "dark") { document.documentElement.classList.add("dark"); setDark(true); }
   }, []);
 
-  /* Lock body scroll when mobile menu is open */
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
@@ -62,21 +68,37 @@ export default function Navbar({ isCollapsing = false }: { isCollapsing?: boolea
     localStorage.setItem("theme", next ? "dark" : "light");
   };
 
-  const closeMenu = () => setMenuOpen(false);
+  /* Helper: animate-out props for items that should fall downward */
+  const fallDown = (x: number, rotate: number, dur: number, del: number) => ({
+    initial: false as const,
+    animate: isCollapsing
+      ? { y: "115vh", x, rotate, opacity: 0 }
+      : { y: 0, x: 0, rotate: 0, opacity: 1 },
+    transition: isCollapsing
+      ? { duration: dur, delay: del, ease: GRAV }
+      : { duration: 0 },
+  });
 
   return (
     <>
       <div ref={sentinelRef} className="absolute top-0 left-0 h-1 w-full pointer-events-none" aria-hidden />
 
-      <header className="fixed top-0 left-0 right-0 z-40 flex justify-center pt-5 px-4">
+      {/*
+       * overflow-visible so items can escape the pill container while falling.
+       * The nav pill shell fades out quietly after all items have left.
+       */}
+      <header className="fixed top-0 left-0 right-0 z-40 flex justify-center pt-5 px-4"
+        style={{ overflow: "visible" }}>
         <motion.nav
           initial={{ y: -20, opacity: 0 }}
+          /* Shell fades last — after items have escaped */
           animate={isCollapsing
-            ? { y: -110, opacity: 0, scale: 0.88 }
-            : { y: 0,    opacity: 1, scale: 1    }}
+            ? { opacity: 0 }
+            : { y: 0, opacity: 1 }}
           transition={isCollapsing
-            ? { duration: 0.45, ease: [0.42, 0, 1, 1], delay: 0 }
+            ? { duration: 0.25, delay: 0.60 }
             : { duration: 0.60, ease: [0.16, 1, 0.3, 1] }}
+          style={{ overflow: "visible" }}
           className={[
             "flex items-center gap-6 px-4 py-2.5 rounded-full transition-all duration-300 border",
             scrolled
@@ -86,19 +108,30 @@ export default function Navbar({ isCollapsing = false }: { isCollapsing?: boolea
           role="navigation"
           aria-label="Main navigation"
         >
-          {/* Monogram */}
-          <a href="#"
-            className="font-serif text-lg leading-none tracking-tight text-ink hover:text-accent transition-colors duration-200"
-            aria-label="Back to top">
-            EB
-          </a>
 
-          {/* Desktop links — liquid glass indicator via layoutId */}
-          <ul className="hidden md:flex items-center gap-0.5" role="list">
-            {links.map((link) => {
+          {/* EB monogram — spins and flies upper-left */}
+          <motion.a
+            href="#"
+            aria-label="Back to top"
+            {...fallDown(-160, -540, 0.55, 0.04)}
+            className="font-serif text-lg leading-none tracking-tight text-ink hover:text-accent transition-colors duration-200"
+          >
+            EB
+          </motion.a>
+
+          {/* Desktop links — each breaks out in its own direction */}
+          <ul className="hidden md:flex items-center gap-0.5" role="list"
+            style={{ overflow: "visible" }}>
+            {links.map((link, i) => {
+              const f = LINK_FALL[i];
               const isActive = activeSection === link.id;
               return (
-                <li key={link.href} className="relative">
+                <motion.li
+                  key={link.href}
+                  {...fallDown(f.x, f.rotate, f.dur, f.del)}
+                  className="relative"
+                  style={{ overflow: "visible" }}
+                >
                   <a
                     href={link.href}
                     className={[
@@ -106,7 +139,6 @@ export default function Navbar({ isCollapsing = false }: { isCollapsing?: boolea
                       isActive ? "text-ink" : "text-muted hover:text-ink",
                     ].join(" ")}
                   >
-                    {/* Liquid glass pill — Framer Motion animates it between positions */}
                     {isActive && (
                       <motion.span
                         layoutId="nav-pill"
@@ -117,13 +149,16 @@ export default function Navbar({ isCollapsing = false }: { isCollapsing?: boolea
                     )}
                     <span className="relative z-10">{link.label}</span>
                   </a>
-                </li>
+                </motion.li>
               );
             })}
           </ul>
 
-          {/* Right side: theme toggle + mobile hamburger */}
-          <div className="flex items-center gap-1">
+          {/* Controls — fly down-right as a unit, spinning */}
+          <motion.div
+            className="flex items-center gap-1"
+            {...fallDown(90, 320, 0.65, 0.24)}
+          >
             <button
               onClick={toggleTheme}
               className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-surface transition-all duration-200"
@@ -140,7 +175,7 @@ export default function Navbar({ isCollapsing = false }: { isCollapsing?: boolea
             >
               {menuOpen ? <X size={16} weight="bold" /> : <List size={16} weight="bold" />}
             </button>
-          </div>
+          </motion.div>
         </motion.nav>
       </header>
 
@@ -164,7 +199,7 @@ export default function Navbar({ isCollapsing = false }: { isCollapsing?: boolea
                   exit={{ opacity: 0, y: 8 }}
                   transition={{ duration: 0.35, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] }}
                 >
-                  <a href={link.href} onClick={closeMenu}
+                  <a href={link.href} onClick={() => setMenuOpen(false)}
                     className={[
                       "block text-3xl font-serif transition-colors duration-200 py-2 px-6",
                       activeSection === link.id ? "text-accent" : "text-ink hover:text-accent",
