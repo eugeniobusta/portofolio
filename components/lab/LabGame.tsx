@@ -403,9 +403,9 @@ function Scene() {
       <Pebbles />
 
       {/* scene objects */}
-      <InfoPoster position={[0, 0, 24]} />
-      <WASDKeys groupCenter={[-18, 0, 10]} carRef={carRef} speedRef={speedRef} />
-      <Mouse3D initPos={[18, 0.6, 8]} carRef={carRef} speedRef={speedRef} carBumpRef={carBump} />
+      <InfoPoster position={[0, 0, 38]} />
+      <WASDKeys groupCenter={[-16, 0, 10]} carRef={carRef} speedRef={speedRef} />
+      <Mouse3D initPos={[17, 0.8, 8]} carRef={carRef} speedRef={speedRef} carBumpRef={carBump} />
 
       <Jeep outer={carRef} />
       <Smoke carRef={carRef} speedRef={speedRef} />
@@ -420,7 +420,7 @@ function Scene() {
         maxPolarAngle={Math.PI * 0.44}
         minDistance={5}
         maxDistance={70}
-        target={[0, 0, 10]}
+        target={[0, 0, 8]}
       />
     </>
   );
@@ -460,7 +460,7 @@ export default function LabGame() {
     <div className="relative w-full h-full" style={{ background: "#a8d0ef" }}>
       <Canvas
         shadows
-        camera={{ fov: 52, near: 0.1, far: 400, position: [-2, 26, -22] }}
+        camera={{ fov: 52, near: 0.1, far: 400, position: [-2, 30, -30] }}
         gl={{ antialias: true, powerPreference: "high-performance" }}
         style={{ width: "100%", height: "100%" }}
       >

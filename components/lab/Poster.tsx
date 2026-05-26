@@ -6,95 +6,106 @@ import * as THREE from "three";
 export function InfoPoster({ position }: { position: [number, number, number] }) {
   const texture = useMemo(() => {
     if (typeof window === "undefined") return null;
+    const W = 1024, H = 700;
     const c = document.createElement("canvas");
-    c.width = 512; c.height = 360;
+    c.width = W; c.height = H;
     const x = c.getContext("2d")!;
 
-    /* cream background */
-    x.fillStyle = "#f5f0e8";
-    x.fillRect(0, 0, 512, 360);
+    /* white background */
+    x.fillStyle = "#ffffff";
+    x.fillRect(0, 0, W, H);
 
-    /* green top bar */
+    /* thick black border */
+    x.strokeStyle = "#111111";
+    x.lineWidth = 20;
+    x.strokeRect(10, 10, W - 20, H - 20);
+
+    /* green accent bar at top */
     x.fillStyle = "#3ecf6a";
-    x.fillRect(0, 0, 512, 8);
+    x.fillRect(22, 22, W - 44, 14);
 
     /* name */
     x.fillStyle = "#111";
-    x.font = "bold 46px Georgia, serif";
+    x.font = "bold 78px Georgia, serif";
     x.textAlign = "center";
-    x.fillText("Eugenio Bustamante", 256, 66);
+    x.fillText("Eugenio Bustamante", W / 2, 112);
 
     /* role */
     x.fillStyle = "#3ecf6a";
-    x.font = "bold 24px Georgia, serif";
-    x.fillText("CS Student  ·  AI Builder", 256, 98);
+    x.font = "bold 36px Georgia, serif";
+    x.fillText("CS Student  ·  AI Builder", W / 2, 158);
 
     /* divider */
-    x.strokeStyle = "#d0c8b8";
-    x.lineWidth = 1;
-    x.beginPath(); x.moveTo(24, 112); x.lineTo(488, 112); x.stroke();
+    x.strokeStyle = "#cccccc";
+    x.lineWidth = 1.5;
+    x.beginPath(); x.moveTo(36, 176); x.lineTo(W - 36, 176); x.stroke();
 
     /* photo placeholder */
-    x.fillStyle = "#d8d0c8";
-    x.fillRect(22, 124, 192, 174);
-    x.fillStyle = "#b0a898";
-    x.font = "16px sans-serif";
-    x.fillText("[ your photo ]", 118, 218);
+    x.fillStyle = "#e8e8e8";
+    x.strokeStyle = "#bbbbbb";
+    x.lineWidth = 1;
+    x.fillRect(36, 192, 310, 430);
+    x.strokeRect(36, 192, 310, 430);
+    x.fillStyle = "#aaaaaa";
+    x.font = "20px sans-serif";
+    x.textAlign = "center";
+    x.fillText("[ photo ]", 36 + 155, 192 + 222);
 
     /* bio lines */
     x.fillStyle = "#333";
-    x.font = "19px Georgia, serif";
+    x.font = "27px Georgia, serif";
     x.textAlign = "left";
-    [
+    const bio = [
       "Building at the intersection",
       "of software and intelligence.",
       "",
       "Open to collaborations,",
       "research, and big ideas.",
-    ].forEach((l, i) => x.fillText(l, 230, 142 + i * 28));
+      "",
+    ];
+    bio.forEach((l, i) => x.fillText(l, 370, 220 + i * 44));
 
-    /* footer */
-    x.fillStyle = "#999";
-    x.font = "15px sans-serif";
-    x.textAlign = "center";
-    x.fillText("eugeniobusta.com", 256, 346);
+    /* website */
+    x.fillStyle = "#3ecf6a";
+    x.font = "bold 26px Georgia, serif";
+    x.fillText("eugeniobusta.com", 370, 220 + bio.length * 44);
 
     return new THREE.CanvasTexture(c);
   }, []);
 
-  const POLE_H = 7.5;
-  const BOARD_W = 8;
-  const BOARD_H = 5.0;
-  const POLE_X  = 3.6;
+  const POLE_H  = 16;
+  const BOARD_W = 22;
+  const BOARD_H = 14;
+  const POLE_X  = 10.0;
 
   return (
     <group position={position}>
-      {/* poles */}
+      {/* green poles */}
       {([-POLE_X, POLE_X] as number[]).map((px, i) => (
         <mesh key={i} position={[px, POLE_H / 2, 0]} castShadow>
-          <cylinderGeometry args={[0.13, 0.16, POLE_H, 9]} />
-          <meshStandardMaterial color="#8b7045" roughness={0.82} />
+          <cylinderGeometry args={[0.22, 0.28, POLE_H, 10]} />
+          <meshStandardMaterial color="#3ecf6a" roughness={0.55} metalness={0.25} />
         </mesh>
       ))}
 
-      {/* horizontal cross-beam */}
-      <mesh position={[0, POLE_H - BOARD_H + 0.25, 0]} castShadow>
-        <boxGeometry args={[POLE_X * 2 + 0.26, 0.18, 0.18]} />
-        <meshStandardMaterial color="#7a6035" roughness={0.85} />
+      {/* horizontal cross-beam (green) */}
+      <mesh position={[0, POLE_H - BOARD_H + 0.5, 0]} castShadow>
+        <boxGeometry args={[POLE_X * 2 + 0.55, 0.30, 0.30]} />
+        <meshStandardMaterial color="#2db85a" roughness={0.65} metalness={0.2} />
       </mesh>
 
-      {/* board (front — texture) */}
+      {/* board front — canvas texture */}
       {texture && (
-        <mesh position={[0, POLE_H - BOARD_H / 2 + 0.3, 0.07]} castShadow>
-          <boxGeometry args={[BOARD_W, BOARD_H, 0.14]} />
-          <meshStandardMaterial map={texture} roughness={0.55} />
+        <mesh position={[0, POLE_H - BOARD_H / 2 + 0.6, 0.12]} castShadow receiveShadow>
+          <boxGeometry args={[BOARD_W, BOARD_H, 0.18]} />
+          <meshStandardMaterial map={texture} roughness={0.45} />
         </mesh>
       )}
 
       {/* board back */}
-      <mesh position={[0, POLE_H - BOARD_H / 2 + 0.3, -0.08]}>
-        <boxGeometry args={[BOARD_W, BOARD_H, 0.09]} />
-        <meshStandardMaterial color="#c8c0b0" roughness={0.85} />
+      <mesh position={[0, POLE_H - BOARD_H / 2 + 0.6, -0.12]}>
+        <boxGeometry args={[BOARD_W, BOARD_H, 0.10]} />
+        <meshStandardMaterial color="#e0e0e0" roughness={0.85} />
       </mesh>
     </group>
   );
