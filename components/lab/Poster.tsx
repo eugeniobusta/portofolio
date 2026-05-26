@@ -37,16 +37,6 @@ export function InfoPoster({ position }: { position: [number, number, number] })
     x.fillStyle = PAPER;
     x.fillRect(0, 0, W, H);
 
-    /*
-     * The board-front mesh uses BoxGeometry positioned at z = -0.12 so the
-     * -Z face is closest to the camera. Three.js UV-maps the -Z face with
-     * U mirrored (uDir = -1), so the texture appears horizontally flipped.
-     * We pre-flip the canvas to compensate.
-     */
-    x.save();
-    x.translate(W, 0);
-    x.scale(-1, 1);
-
     /* ── thin black border ── */
     x.strokeStyle = INK;
     x.lineWidth = 14;
@@ -137,8 +127,6 @@ export function InfoPoster({ position }: { position: [number, number, number] })
     x.font = "bold 17px Georgia, serif";
     x.textAlign = "right";
     x.fillText("eugeniobusta.com", W - ML, H - 22);
-
-    x.restore();
 
     return new THREE.CanvasTexture(c);
   }, []);

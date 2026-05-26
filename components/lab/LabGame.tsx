@@ -323,8 +323,8 @@ function Scene() {
   const keys      = useKeys();
   const carRef    = useRef<THREE.Group>(null!);
   const speedRef  = useRef(0);
-  const carPos    = useRef(new THREE.Vector3(0, 1, 0));
-  const carYaw    = useRef(0);
+  const carPos    = useRef(new THREE.Vector3(-2, 1, 3));
+  const carYaw    = useRef(Math.PI * 0.18);
   const orbitRef  = useRef<any>(null);
   const carBump   = useRef(0);    // cable bump: decaying upward offset
 
@@ -422,7 +422,7 @@ function Scene() {
         maxPolarAngle={Math.PI * 0.44}
         minDistance={5}
         maxDistance={70}
-        target={[0, 0, 8]}
+        target={[0, 0, 14]}
       />
     </>
   );
@@ -462,7 +462,7 @@ export default function LabGame() {
     <div className="relative w-full h-full" style={{ background: "#a8d0ef" }}>
       <Canvas
         shadows
-        camera={{ fov: 52, near: 0.1, far: 400, position: [-2, 30, -30] }}
+        camera={{ fov: 52, near: 0.1, far: 400, position: [-2, 16, -20] }}
         gl={{ antialias: true, powerPreference: "high-performance" }}
         style={{ width: "100%", height: "100%" }}
       >
