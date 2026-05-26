@@ -235,13 +235,14 @@ body {
   position: absolute;
   inset: -1px;           /* extend to sit ON TOP of the grey border */
   border-radius: 9px;    /* button's rounded-lg (8px) + 1px extension */
-  padding: 1.5px;        /* ring width */
+  padding: 2.5px;        /* ring width */
   background: conic-gradient(
     from var(--neon-angle),
     transparent   0deg,
-    oklch(85% 0.35 145) 10deg,
-    oklch(85% 0.35 145) 22deg,
-    transparent  32deg
+    oklch(88% 0.38 145) 8deg,
+    oklch(90% 0.40 145) 20deg,
+    oklch(88% 0.38 145) 38deg,
+    transparent  50deg
   );
   animation: neon-sweep 3s linear infinite;
   /* Punch out interior → only the padding strip remains visible */
