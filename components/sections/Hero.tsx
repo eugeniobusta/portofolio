@@ -103,11 +103,11 @@ export default function Hero({ onGameOpen }: HeroProps) {
                          relative"
               aria-label="Open the interactive lab"
             >
-              <span
-                className="absolute inset-0 rounded-lg animate-ping opacity-[0.15] pointer-events-none"
-                style={{ background: "var(--accent)" }}
-                aria-hidden
-              />
+              {/* Neon glow halo — blurred for soft outer light */}
+              <span className="neon-ring opacity-60" style={{ filter: "blur(5px)" }} aria-hidden />
+              {/* Neon sharp line — the crisp travelling stroke */}
+              <span className="neon-ring" aria-hidden />
+
               Enter the Lab
               <span
                 className="w-6 h-6 rounded-full flex items-center justify-center text-paper text-xs

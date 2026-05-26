@@ -213,6 +213,49 @@ body {
   background: var(--frame);
 }
 
+/* ─── NEON BORDER SWEEP ─────────────────────────────────────────────────────*/
+
+/* Registers --neon-angle as a type-safe animatable CSS custom property */
+@property --neon-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes neon-sweep {
+  to { --neon-angle: 360deg; }
+}
+
+/*
+ * Neon ring: conic gradient sweeping around the button border.
+ * mask-composite: exclude punches out the interior so only
+ * the padding strip (= the ring) is visible.
+ */
+.neon-ring {
+  position: absolute;
+  inset: -1px;           /* extend to sit ON TOP of the grey border */
+  border-radius: 9px;    /* button's rounded-lg (8px) + 1px extension */
+  padding: 1.5px;        /* ring width */
+  background: conic-gradient(
+    from var(--neon-angle),
+    transparent   0deg,
+    oklch(85% 0.35 145) 10deg,
+    oklch(85% 0.35 145) 22deg,
+    transparent  32deg
+  );
+  animation: neon-sweep 3s linear infinite;
+  /* Punch out interior → only the padding strip remains visible */
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
 /* ─── PROJECT VISUAL KEYFRAMES ─────────────────────────────────────────────*/
 
 @keyframes float-card {
