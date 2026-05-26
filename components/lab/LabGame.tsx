@@ -4,6 +4,9 @@ import { useRef, useMemo, useEffect, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Sky, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import { sampleH, WORLD, HALF } from "./terrain";
+import { InfoPoster } from "./Poster";
+import { WASDKeys, Mouse3D } from "./Props";
 
 /* ─── palette ─────────────────────────────────────────────────── */
 const C_BODY  = "#3ecf6a";
@@ -12,10 +15,6 @@ const C_WHEEL = "#181818";
 const C_RIM   = "#888888";
 const C_GLASS = "#cce8ff";
 
-/* ─── world ───────────────────────────────────────────────────── */
-const WORLD   = 100;          // terrain square side (expand later)
-const HALF    = WORLD / 2;
-
 /* ─── physics ──────────────────────────────────────────────────── */
 const ACCEL   = 38;
 const BRAKE   = 22;
@@ -23,15 +22,6 @@ const FRIC    = 0.92;
 const MAX_SPD = 48;
 const STEER   = 2.6;
 const SMOKE_N = 55;
-
-/* ─── gentle terrain ──────────────────────────────────────────── */
-function sampleH(x: number, z: number) {
-  return (
-    Math.sin(x * 0.025) * Math.cos(z * 0.025) * 0.28 +
-    Math.sin(x * 0.06 + 0.9) * Math.cos(z * 0.055 + 0.4) * 0.10 +
-    Math.cos(x * 0.12 + z * 0.08) * 0.05
-  );
-}
 
 function buildGround() {
   const g = new THREE.PlaneGeometry(WORLD, WORLD, 60, 60);
@@ -330,12 +320,13 @@ function Headlights({ carRef }: { carRef: React.RefObject<THREE.Group> }) {
 
 /* ─── Scene ────────────────────────────────────────────────────── */
 function Scene() {
-  const keys     = useKeys();
-  const carRef   = useRef<THREE.Group>(null!);
-  const speedRef = useRef(0);
-  const carPos   = useRef(new THREE.Vector3(0, 1, 0));
-  const carYaw   = useRef(0);
-  const orbitRef = useRef<any>(null);
+  const keys      = useKeys();
+  const carRef    = useRef<THREE.Group>(null!);
+  const speedRef  = useRef(0);
+  const carPos    = useRef(new THREE.Vector3(0, 1, 0));
+  const carYaw    = useRef(0);
+  const orbitRef  = useRef<any>(null);
+  const carBump   = useRef(0);    // cable bump: decaying upward offset
 
   useFrame(({ camera }, delta) => {
     /* prevent camera from clipping through the ground */
@@ -376,8 +367,11 @@ function Scene() {
     carPos.current.x = THREE.MathUtils.clamp(carPos.current.x, -HALF + 1, HALF - 1);
     carPos.current.z = THREE.MathUtils.clamp(carPos.current.z, -HALF + 1, HALF - 1);
 
+    carBump.current *= 0.82;                                          // decay bump
     const ground = sampleH(carPos.current.x, carPos.current.z);
-    carPos.current.y = THREE.MathUtils.lerp(carPos.current.y, ground + 0.26, 0.22);
+    carPos.current.y = THREE.MathUtils.lerp(
+      carPos.current.y, ground + 0.26 + carBump.current, 0.22
+    );
 
     const car = carRef.current;
     if (car) { car.position.copy(carPos.current); car.rotation.y = carYaw.current; }
@@ -407,6 +401,12 @@ function Scene() {
       <Ground />
       <Boundary />
       <Pebbles />
+
+      {/* scene objects */}
+      <InfoPoster position={[0, 0, 24]} />
+      <WASDKeys groupCenter={[-18, 0, 10]} carRef={carRef} speedRef={speedRef} />
+      <Mouse3D initPos={[18, 0.6, 8]} carRef={carRef} speedRef={speedRef} carBumpRef={carBump} />
+
       <Jeep outer={carRef} />
       <Smoke carRef={carRef} speedRef={speedRef} />
       <Headlights carRef={carRef} />
@@ -420,6 +420,7 @@ function Scene() {
         maxPolarAngle={Math.PI * 0.44}
         minDistance={5}
         maxDistance={70}
+        target={[0, 0, 10]}
       />
     </>
   );
@@ -459,7 +460,7 @@ export default function LabGame() {
     <div className="relative w-full h-full" style={{ background: "#a8d0ef" }}>
       <Canvas
         shadows
-        camera={{ fov: 52, near: 0.1, far: 400, position: [0, 28, 24] }}
+        camera={{ fov: 52, near: 0.1, far: 400, position: [-2, 26, -22] }}
         gl={{ antialias: true, powerPreference: "high-performance" }}
         style={{ width: "100%", height: "100%" }}
       >
