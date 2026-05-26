@@ -7,7 +7,7 @@ export const contentType = "image/png";
 
 export default async function Icon() {
   const font = await readFile(
-    join(process.cwd(), "public/fonts/InstrumentSerif-Regular.woff2")
+    join(process.cwd(), "public/fonts/InstrumentSerif-Regular.ttf")
   );
 
   return new ImageResponse(
