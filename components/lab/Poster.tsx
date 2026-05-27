@@ -26,107 +26,180 @@ export function InfoPoster({ position }: { position: [number, number, number] })
     c.width = W; c.height = H;
     const x = c.getContext("2d")!;
 
-    /* ── colour tokens (matches portfolio globals.css light mode) ── */
-    const INK     = "#191921";   // oklch(17% 0.008 250) ≈
-    const PAPER   = "#faf8f4";   // oklch(97.5% 0.006 85) ≈
-    const MUTED   = "#757880";   // oklch(52% 0.006 250) ≈
-    const ACCENT  = "#c99040";   // amber accent (portfolio --accent)
-    const FRAME   = "#e4e1dc";   // oklch(89.5% 0.006 85) ≈
+    /* ── palette ── */
+    const INK      = "#111111";
+    const MUTED    = "#64748b";
+    const DIM      = "#94a3b8";
+    const BORDER   = "#e2e8f0";
+    const ACCENT_G = "#3ecf6a";
+    const ACCENT_A = "#f59e0b";
 
-    /* ── background ── */
-    x.fillStyle = PAPER;
+    /* ── warm white background ── */
+    x.fillStyle = "#fafaf8";
     x.fillRect(0, 0, W, H);
 
-    /* ── thin black border ── */
-    x.strokeStyle = INK;
-    x.lineWidth = 14;
-    x.strokeRect(7, 7, W - 14, H - 14);
+    /* ── left dark panel ── */
+    const LP = 268;
+    x.fillStyle = "#111111";
+    x.fillRect(0, 0, LP, H);
 
-    const ML = 56;   // left margin
+    /* dot grid — top-right corner of panel */
+    x.fillStyle = "rgba(255,255,255,0.10)";
+    for (let row = 0; row < 5; row++) {
+      for (let col = 0; col < 4; col++) {
+        x.beginPath();
+        x.arc(LP - 72 + col * 17, 30 + row * 17, 2, 0, Math.PI * 2);
+        x.fill();
+      }
+    }
 
-    /* ── name ── */
-    x.fillStyle = INK;
-    x.textAlign = "left";
+    /* subtle radial glow behind monogram */
+    const glow = x.createRadialGradient(134, 278, 0, 134, 278, 96);
+    glow.addColorStop(0, "rgba(62,207,106,0.09)");
+    glow.addColorStop(1, "rgba(62,207,106,0)");
+    x.fillStyle = glow;
+    x.fillRect(0, 180, LP, 200);
 
-    x.font = "bold 86px Georgia, serif";
-    x.fillText("Eugenio", ML, 108);
-
-    x.font = "bold 74px Georgia, serif";
-    x.fillText("Bustamante.", ML, 188);
-
-    /* ── tagline ── */
-    x.fillStyle = MUTED;
-    x.font = "21px Georgia, serif";
-    x.fillText("I build things at the intersection of software", ML, 236);
-    x.fillText("and intelligence. Currently obsessed with", ML, 262);
-    x.fillText("what happens when AI meets real products.", ML, 288);
-
-    /* ── quote ── */
-    x.fillStyle = MUTED;
-    x.globalAlpha = 0.65;
-    x.font = "italic 18px Georgia, serif";
-    x.fillText("Simplicity is key. I love simplicity.", ML, 330);
-    x.globalAlpha = 1;
-
-    /* ── thin divider ── */
-    x.strokeStyle = FRAME;
+    /* diamond frame */
+    x.save();
+    x.translate(134, 278);
+    x.rotate(Math.PI / 4);
+    x.strokeStyle = "rgba(62,207,106,0.30)";
     x.lineWidth = 1.5;
+    x.strokeRect(-68, -68, 136, 136);
+    x.restore();
+
+    /* "EB" monogram */
+    x.fillStyle = "#ffffff";
+    x.textAlign = "center";
+    x.font = "bold 104px Georgia, serif";
+    x.fillText("EB", 134, 302);
+
+    /* monogram label */
+    x.fillStyle = ACCENT_G;
+    x.font = "bold 10px Arial, sans-serif";
+    x.fillText("SOFTWARE ENGINEER", 134, 354);
+
+    /* green accent bar — panel bottom */
+    x.fillStyle = ACCENT_G;
+    x.fillRect(0, H - 8, LP, 8);
+
+    /* hairline divider between panels */
+    x.strokeStyle = BORDER;
+    x.lineWidth = 1;
     x.beginPath();
-    x.moveTo(ML, 354);
-    x.lineTo(W - ML, 354);
+    x.moveTo(LP + 10, 36);
+    x.lineTo(LP + 10, H - 36);
     x.stroke();
 
-    /* ── CTA: "View work" — dark filled button ── */
-    const B1X = ML, B1Y = 374, B1W = 138, B1H = 40;
-    x.fillStyle = INK;
-    rRect(x, B1X, B1Y, B1W, B1H, 8);
-    x.fill();
-    x.fillStyle = PAPER;
-    x.font = "bold 15px Arial, sans-serif";
-    x.textAlign = "center";
-    x.fillText("View work  ↓", B1X + B1W / 2, B1Y + B1H / 2 + 5);
+    /* ── right panel ── */
+    const RX = LP + 40;
 
-    /* ── CTA: "Enter the Lab" — outlined button ── */
-    const B2X = ML + B1W + 14, B2Y = B1Y, B2W = 168, B2H = B1H;
-    x.strokeStyle = FRAME;
-    x.lineWidth = 1.5;
-    rRect(x, B2X, B2Y, B2W, B2H, 8);
-    x.stroke();
-    x.fillStyle = INK;
-    x.font = "bold 15px Arial, sans-serif";
-    x.textAlign = "center";
-    x.fillText("Enter the Lab", B2X + B2W / 2 - 12, B2Y + B2H / 2 + 5);
-    /* green circle arrow */
-    x.fillStyle = INK;
-    x.beginPath();
-    x.arc(B2X + B2W - 20, B2Y + B2H / 2, 11, 0, Math.PI * 2);
-    x.fill();
-    x.fillStyle = PAPER;
-    x.font = "bold 13px Arial, sans-serif";
-    x.textAlign = "center";
-    x.fillText("→", B2X + B2W - 20, B2Y + B2H / 2 + 4);
-
-    /* ── social links ── */
+    /* name */
     x.textAlign = "left";
-    x.font = "14px Arial, sans-serif";
-    x.fillStyle = MUTED;
-    x.globalAlpha = 0.75;
-    x.fillText("GitHub", ML, 450);
-    x.fillStyle = FRAME;
-    x.fillText("  ·  ", ML + 52, 450);
-    x.fillStyle = MUTED;
-    x.fillText("LinkedIn", ML + 82, 450);
-    x.globalAlpha = 1;
+    x.fillStyle = INK;
+    x.font = "bold 90px Georgia, serif";
+    x.fillText("Eugenio", RX, 105);
+    x.font = "bold 76px Georgia, serif";
+    x.fillText("Bustamante.", RX, 185);
 
-    /* ── amber accent rule ── */
-    x.fillStyle = ACCENT;
-    x.fillRect(ML, 480, 36, 3);
+    /* rule under name */
+    x.strokeStyle = BORDER;
+    x.lineWidth = 1.5;
+    x.beginPath();
+    x.moveTo(RX, 210);
+    x.lineTo(W - 40, 210);
+    x.stroke();
 
-    /* ── website URL bottom-right ── */
-    x.fillStyle = ACCENT;
-    x.font = "bold 17px Georgia, serif";
+    /* role */
+    x.fillStyle = MUTED;
+    x.font = "italic 21px Georgia, serif";
+    x.fillText("Full-stack engineer & AI builder", RX, 246);
+
+    /* bio */
+    x.fillStyle = "#4b5563";
+    x.font = "17px Georgia, serif";
+    x.fillText("Building at the edge of software and", RX, 284);
+    x.fillText("intelligence. Making AI feel inevitable.", RX, 308);
+
+    /* amber accent rule */
+    x.fillStyle = ACCENT_A;
+    x.fillRect(RX, 334, 46, 3);
+
+    /* STACK section */
+    x.fillStyle = DIM;
+    x.font = "bold 10px Arial, sans-serif";
+    x.fillText("STACK", RX, 366);
+
+    const chips: { label: string; bg: string }[] = [
+      { label: "TypeScript", bg: "#1d4ed8" },
+      { label: "Python",     bg: "#b45309" },
+      { label: "React",      bg: "#0891b2" },
+      { label: "Next.js",    bg: "#171717" },
+      { label: "AI / ML",    bg: "#7c3aed" },
+    ];
+    let cx = RX;
+    for (const chip of chips) {
+      x.font = "bold 12px Arial, sans-serif";
+      const cw = x.measureText(chip.label).width + 22;
+      const ch = 27, cr = 5, cy = 380;
+      rRect(x, cx, cy, cw, ch, cr);
+      x.fillStyle = chip.bg;
+      x.fill();
+      x.fillStyle = "#ffffff";
+      x.textAlign = "center";
+      x.fillText(chip.label, cx + cw / 2, cy + ch / 2 + 4);
+      x.textAlign = "left";
+      cx += cw + 9;
+    }
+
+    /* CONNECT section */
+    x.fillStyle = DIM;
+    x.font = "bold 10px Arial, sans-serif";
+    x.fillText("CONNECT", RX, 440);
+
+    x.fillStyle = MUTED;
+    x.font = "15px Arial, sans-serif";
+    x.fillText("↗  eugeniobusta.com", RX, 463);
+    x.fillText("↗  github.com/eugeniobusta", RX, 487);
+    x.fillText("↗  linkedin.com/in/eugenio", RX, 511);
+
+    /* quote */
+    x.fillStyle = "#9ca3af";
+    x.font = "italic 15px Georgia, serif";
+    x.fillText("\"Simplicity is key.\"", RX, 566);
+
+    /* open-to-work badge */
+    const bx = RX, by = 586, bw = 154, bh = 30;
+    rRect(x, bx, by, bw, bh, 15);
+    x.fillStyle = "rgba(62,207,106,0.10)";
+    x.fill();
+    x.strokeStyle = "rgba(62,207,106,0.45)";
+    x.lineWidth = 1;
+    rRect(x, bx, by, bw, bh, 15);
+    x.stroke();
+    x.fillStyle = ACCENT_G;
+    x.beginPath();
+    x.arc(bx + 18, by + bh / 2, 4, 0, Math.PI * 2);
+    x.fill();
+    x.fillStyle = "#166534";
+    x.font = "bold 12px Arial, sans-serif";
+    x.textAlign = "left";
+    x.fillText("Open to work", bx + 30, by + bh / 2 + 4);
+
+    /* bottom amber rule */
+    x.strokeStyle = ACCENT_A;
+    x.lineWidth = 1.5;
+    x.beginPath();
+    x.moveTo(RX, 648);
+    x.lineTo(W - 40, 648);
+    x.stroke();
+
+    /* URL bottom-right */
+    x.fillStyle = ACCENT_A;
+    x.font = "bold 15px Georgia, serif";
     x.textAlign = "right";
-    x.fillText("eugeniobusta.com", W - ML, H - 22);
+    x.fillText("eugeniobusta.com", W - 40, H - 20);
 
     return new THREE.CanvasTexture(c);
   }, []);

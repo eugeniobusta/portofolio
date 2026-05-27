@@ -16,12 +16,17 @@ const C_RIM   = "#888888";
 const C_GLASS = "#cce8ff";
 
 /* ─── physics ──────────────────────────────────────────────────── */
-const ACCEL   = 38;
-const BRAKE   = 22;
-const FRIC    = 0.92;
-const MAX_SPD = 48;
-const STEER   = 2.6;
-const SMOKE_N = 55;
+const ACCEL       = 38;
+const BRAKE       = 22;
+const FRIC        = 0.92;
+const BOOST_ACCEL = 85;
+const BOOST_FRIC  = 0.96;
+const MAX_SPD     = 48;
+const BOOST_MAX   = 90;
+const STEER       = 2.6;
+const SMOKE_N     = 80;
+const BOOST_N     = 70;
+const DRIFT_N     = 200;
 
 function buildGround() {
   const g = new THREE.PlaneGeometry(WORLD, WORLD, 60, 60);
@@ -34,9 +39,9 @@ function buildGround() {
 
 /* ─── keyboard ────────────────────────────────────────────────── */
 function useKeys() {
-  const k = useRef({ w: false, a: false, s: false, d: false });
+  const k = useRef<Record<string, boolean>>({ w: false, a: false, s: false, d: false });
   useEffect(() => {
-    const W = new Set(["w", "a", "s", "d"]);
+    const W = new Set(["w", "a", "s", "d", " "]);
     const dn = (e: KeyboardEvent) => {
       const c = e.key.toLowerCase();
       if (W.has(c)) { e.preventDefault(); (k.current as Record<string, boolean>)[c] = true; }
@@ -240,7 +245,7 @@ function Smoke({
           (Math.random() - 0.5) * 0.25
         );
         p.life = 0;
-        p.max  = 1.2 + Math.random() * 0.8;   // 1.2 – 2.0 s lifetime
+        p.max  = 2.5 + Math.random() * 1.5;   // 2.5 – 4.0 s lifetime
         p.on   = true;
       }
     }
@@ -254,7 +259,7 @@ function Smoke({
       p.pos.addScaledVector(p.vel, dt);
       p.vel.y  = Math.max(0, p.vel.y - 0.06 * dt); // settle
       const t  = p.life / p.max;
-      const s  = 0.10 + t * 0.52;                  // grow as it ages
+      const s  = 0.08 + t * 0.75;                  // grow as it ages
       M.compose(p.pos, Q.identity(), S.set(s, s, s));
       mesh.current.setMatrixAt(idx++, M);
     }
@@ -269,16 +274,172 @@ function Smoke({
   return (
     <instancedMesh ref={mesh} args={[undefined, undefined, SMOKE_N]}>
       <sphereGeometry args={[1, 6, 6]} />
-      {/* black-grey, semi-opaque — heavy exhaust look */}
       <meshStandardMaterial
         color="#111111"
         transparent
-        opacity={0.62}
+        opacity={0.38}
         depthWrite={false}
         roughness={1}
       />
     </instancedMesh>
   );
+}
+
+/* ─── Boost trail (neon green jet behind car) ────────────────── */
+function BoostTrail({
+  carRef, speedRef, boostRef,
+}: { carRef: React.RefObject<THREE.Group>; speedRef: React.RefObject<number>; boostRef: React.RefObject<boolean> }) {
+  const mesh  = useRef<THREE.InstancedMesh>(null!);
+  const puffs = useRef<Puff[]>(
+    Array.from({ length: BOOST_N }, () => ({
+      pos: new THREE.Vector3(), vel: new THREE.Vector3(),
+      life: 0, max: 1, on: false,
+    }))
+  );
+  const timer = useRef(0);
+  const M = useMemo(() => new THREE.Matrix4(), []);
+  const Q = useMemo(() => new THREE.Quaternion(), []);
+  const S = useMemo(() => new THREE.Vector3(), []);
+
+  useFrame((_, delta) => {
+    const dt  = Math.min(delta, 0.05);
+    const car = carRef.current;
+    if (!car || !mesh.current) return;
+
+    if (boostRef.current) {
+      timer.current -= dt;
+      if (timer.current <= 0) {
+        timer.current = 0.025;
+        for (let k = 0; k < 3; k++) {
+          const p = puffs.current.find(p => !p.on);
+          if (!p) break;
+          const ox = (Math.random() - 0.5) * 0.9;
+          const local = new THREE.Vector3(ox * 0.88, 0.14 * 0.88, -1.1 * 0.88);
+          local.applyMatrix4(car.matrixWorld);
+          p.pos.copy(local);
+          const sY = Math.sin(car.rotation.y), cY = Math.cos(car.rotation.y);
+          const spd = Math.abs(speedRef.current ?? 0);
+          p.vel.set(
+            -sY * (spd * 0.45 + 5) + (Math.random() - 0.5) * 2.5,
+            (Math.random() - 0.5) * 0.5 + 0.08,
+            -cY * (spd * 0.45 + 5) + (Math.random() - 0.5) * 2.5,
+          );
+          p.life = 0;
+          p.max  = 0.22 + Math.random() * 0.22;
+          p.on   = true;
+        }
+      }
+    }
+
+    let idx = 0;
+    for (const p of puffs.current) {
+      if (!p.on) continue;
+      p.life += dt;
+      if (p.life >= p.max) { p.on = false; continue; }
+      p.pos.addScaledVector(p.vel, dt);
+      p.vel.multiplyScalar(0.86);
+      const t  = p.life / p.max;
+      const sz = 0.05 + t * 0.20;
+      M.compose(p.pos, Q.identity(), S.set(sz, sz, sz));
+      mesh.current.setMatrixAt(idx++, M);
+    }
+    for (let i = idx; i < BOOST_N; i++) {
+      M.compose(new THREE.Vector3(0, -9999, 0), Q.identity(), S.set(0.001, 0.001, 0.001));
+      mesh.current.setMatrixAt(i, M);
+    }
+    mesh.current.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh ref={mesh} args={[undefined, undefined, BOOST_N]}>
+      <sphereGeometry args={[1, 6, 6]} />
+      <meshStandardMaterial
+        color="#3ecf6a"
+        emissive="#3ecf6a"
+        emissiveIntensity={3.5}
+        transparent
+        opacity={0.92}
+        depthWrite={false}
+      />
+    </instancedMesh>
+  );
+}
+
+/* ─── Drift marks (tire stamps on ground when boosting) ─────── */
+function DriftMarks({
+  carPosRef, carYawRef, speedRef, boostRef,
+}: {
+  carPosRef: React.RefObject<THREE.Vector3>;
+  carYawRef: React.RefObject<number>;
+  speedRef:  React.RefObject<number>;
+  boostRef:  React.RefObject<boolean>;
+}) {
+  const meshRef = useRef<THREE.InstancedMesh>(null!);
+  const head    = useRef(0);
+  const timer   = useRef(0);
+  const M = useMemo(() => new THREE.Matrix4(), []);
+  const Q = useMemo(() => new THREE.Quaternion(), []);
+  const S = useMemo(() => new THREE.Vector3(), []);
+
+  useEffect(() => {
+    if (!meshRef.current) return;
+    const hidden = new THREE.Matrix4().compose(
+      new THREE.Vector3(0, -999, 0), new THREE.Quaternion(), new THREE.Vector3(0.001, 0.001, 0.001),
+    );
+    for (let i = 0; i < DRIFT_N; i++) meshRef.current.setMatrixAt(i, hidden);
+    meshRef.current.instanceMatrix.needsUpdate = true;
+  }, []);
+
+  useFrame((_, delta) => {
+    const dt = Math.min(delta, 0.05);
+    if (!boostRef.current || Math.abs(speedRef.current) < 8 || !meshRef.current) return;
+    timer.current -= dt;
+    if (timer.current > 0) return;
+    timer.current = 0.055;
+
+    const pos  = carPosRef.current;
+    const yaw  = carYawRef.current;
+    const gnd  = sampleH(pos.x, pos.z);
+    const SIDE = 0.56;
+    const px   = Math.cos(yaw) * SIDE;
+    const pz   = -Math.sin(yaw) * SIDE;
+
+    for (let side = -1; side <= 1; side += 2) {
+      const i = head.current;
+      head.current = (head.current + 1) % DRIFT_N;
+      Q.setFromEuler(new THREE.Euler(0, yaw, 0));
+      M.compose(
+        new THREE.Vector3(pos.x + side * px, gnd + 0.012, pos.z + side * pz),
+        Q,
+        S.set(0.14, 0.035, 0.58),
+      );
+      meshRef.current.setMatrixAt(i, M);
+    }
+    meshRef.current.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh ref={meshRef} args={[undefined, undefined, DRIFT_N]} receiveShadow>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshStandardMaterial color="#0a0a0a" roughness={1} />
+    </instancedMesh>
+  );
+}
+
+/* ─── Green flicker light behind car during boost ────────────── */
+function BoostLight({ carRef, boostRef }: { carRef: React.RefObject<THREE.Group>; boostRef: React.RefObject<boolean> }) {
+  const lightRef = useRef<THREE.PointLight>(null!);
+
+  useFrame(() => {
+    if (!lightRef.current || !carRef.current) return;
+    if (!boostRef.current) { lightRef.current.intensity = 0; return; }
+    const local = new THREE.Vector3(0, 0.3, -2.4);
+    local.applyMatrix4(carRef.current.matrixWorld);
+    lightRef.current.position.copy(local);
+    lightRef.current.intensity = 10 + Math.random() * 6;
+  });
+
+  return <pointLight ref={lightRef} color="#3ecf6a" distance={14} decay={1.8} />;
 }
 
 /* ─── Headlights ─────────────────────────────────────────────── */
@@ -326,7 +487,8 @@ function Scene() {
   const carPos    = useRef(new THREE.Vector3(-2, 1, 3));
   const carYaw    = useRef(Math.PI * 0.18);
   const orbitRef  = useRef<any>(null);
-  const carBump   = useRef(0);    // cable bump: decaying upward offset
+  const carBump   = useRef(0);
+  const boostRef  = useRef(false);
 
   useFrame(({ camera }, delta) => {
     /* prevent camera from clipping through the ground */
@@ -347,14 +509,17 @@ function Scene() {
       }
     }
 
-    const dt = Math.min(delta, 0.05);
-    const { w, a, s, d } = keys.current;
+    const dt    = Math.min(delta, 0.05);
+    const k     = keys.current;
+    const w = k.w, a = k.a, s = k.s, d = k.d, space = k[" "] ?? false;
     let spd = speedRef.current;
+    const boost = space && !!w;
+    boostRef.current = boost && Math.abs(spd) > 3;
 
-    if (w) spd += ACCEL * dt;
+    if (w) spd += (boost ? BOOST_ACCEL : ACCEL) * dt;
     if (s) spd -= BRAKE * dt;
-    spd *= FRIC;
-    spd  = Math.max(-MAX_SPD * 0.4, Math.min(MAX_SPD, spd));
+    spd *= boost ? BOOST_FRIC : FRIC;
+    spd  = Math.max(-(boost ? BOOST_MAX : MAX_SPD) * 0.4, Math.min(boost ? BOOST_MAX : MAX_SPD, spd));
     speedRef.current = spd;
 
     if (Math.abs(spd) > 0.12)
@@ -412,6 +577,9 @@ function Scene() {
       <Jeep outer={carRef} />
       <Smoke carRef={carRef} speedRef={speedRef} />
       <Headlights carRef={carRef} />
+      <BoostTrail carRef={carRef} speedRef={speedRef} boostRef={boostRef} />
+      <DriftMarks carPosRef={carPos} carYawRef={carYaw} speedRef={speedRef} boostRef={boostRef} />
+      <BoostLight carRef={carRef} boostRef={boostRef} />
 
       <OrbitControls
         ref={orbitRef}
@@ -446,7 +614,11 @@ function HUD() {
             style={{ background: "rgba(0,0,0,0.10)", border: "1px solid rgba(0,0,0,0.18)", fontFamily: "inherit" }}
           >{k}</kbd>
         ))}
-        <span>drive · drag to orbit · scroll to zoom</span>
+        <span>drive</span>
+        <span style={{ opacity: 0.4 }}>·</span>
+        <kbd className="px-1.5 py-0.5 rounded" style={{ background: "rgba(62,207,106,0.15)", border: "1px solid rgba(62,207,106,0.4)", fontFamily: "inherit", color: "#1a9148" }}>SPACE</kbd>
+        <span>boost</span>
+        <span style={{ opacity: 0.4 }}>· drag · scroll zoom</span>
       </div>
     </div>
   );
