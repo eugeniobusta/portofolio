@@ -1,12 +1,14 @@
 "use client";
 
-import { useRef, useMemo, useEffect, useState } from "react";
+import { useRef, useMemo, useEffect, useState, useCallback } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Sky, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { sampleH, WORLD, HALF } from "./terrain";
 import { InfoPoster } from "./Poster";
 import { WASDKeys, Mouse3D } from "./Props";
+import { ProjectBuildings } from "./ProjectBuildings";
+import { Project } from "../../data/projects";
 
 /* ─── palette ─────────────────────────────────────────────────── */
 const C_BODY  = "#3ecf6a";
@@ -25,7 +27,8 @@ const MAX_SPD     = 48;
 const BOOST_MAX   = 90;
 const STEER       = 2.6;
 const SMOKE_N     = 80;
-const BOOST_N     = 70;
+const FIRE_N      = 160;
+const DARK_N      = 60;
 
 function buildGround() {
   const g = new THREE.PlaneGeometry(WORLD, WORLD, 60, 60);
@@ -289,146 +292,162 @@ function Smoke({
   );
 }
 
-/* ─── Boost trail — Rocket League style cones + particles ────── */
+/* ─── Boost fire trail — green flame particles with color fade ── */
+type FirePuff = {
+  pos: THREE.Vector3; vel: THREE.Vector3;
+  life: number; max: number; on: boolean;
+  startColor: THREE.Color;
+};
+
 function BoostTrail({
   carRef, speedRef, boostRef,
 }: { carRef: React.RefObject<THREE.Group>; speedRef: React.RefObject<number>; boostRef: React.RefObject<boolean> }) {
-  const mesh     = useRef<THREE.InstancedMesh>(null!);
-  const cone1Ref = useRef<THREE.Mesh>(null!);
-  const cone2Ref = useRef<THREE.Mesh>(null!);
-  const puffs    = useRef<Puff[]>(
-    Array.from({ length: BOOST_N }, () => ({
+  const fireMesh  = useRef<THREE.InstancedMesh>(null!);
+  const darkMesh  = useRef<THREE.InstancedMesh>(null!);
+
+  const firePuffs = useRef<FirePuff[]>(
+    Array.from({ length: FIRE_N }, () => ({
       pos: new THREE.Vector3(), vel: new THREE.Vector3(),
-      life: 0, max: 1, on: false,
+      life: 0, max: 1, on: false, startColor: new THREE.Color(),
     }))
   );
+  const darkPuffs = useRef<FirePuff[]>(
+    Array.from({ length: DARK_N }, () => ({
+      pos: new THREE.Vector3(), vel: new THREE.Vector3(),
+      life: 0, max: 1, on: false, startColor: new THREE.Color(),
+    }))
+  );
+
   const timer = useRef(0);
-  const M     = useMemo(() => new THREE.Matrix4(), []);
-  const Q     = useMemo(() => new THREE.Quaternion(), []);
-  const S     = useMemo(() => new THREE.Vector3(), []);
-  // Rx(π/2) maps cone apex (+Y) to +Z; then Ry(yaw) sends +Z to car's forward.
-  const qX    = useMemo(() => new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2), []);
-  const qY    = useMemo(() => new THREE.Quaternion(), []);
-  const qCone = useMemo(() => new THREE.Quaternion(), []);
-  const yAxis = useMemo(() => new THREE.Vector3(0, 1, 0), []);
+  const M  = useMemo(() => new THREE.Matrix4(), []);
+  const Q  = useMemo(() => new THREE.Quaternion(), []);
+  const S  = useMemo(() => new THREE.Vector3(), []);
+  const C  = useMemo(() => new THREE.Color(), []);
+  const BLACK     = useMemo(() => new THREE.Color("#020602"), []);
+  const DARKGREEN = useMemo(() => new THREE.Color("#062010"), []);
 
   useFrame((_, delta) => {
     const dt  = Math.min(delta, 0.05);
     const car = carRef.current;
-    if (!car) return;
+    if (!car || !fireMesh.current || !darkMesh.current) return;
 
     const on  = boostRef.current;
-    const p   = car.position;
     const yaw = car.rotation.y;
     const sY  = Math.sin(yaw), cY = Math.cos(yaw);
 
-    /* ── position cones — rotate via quaternion, shake each frame ── */
-    if (cone1Ref.current && cone2Ref.current) {
-      cone1Ref.current.visible = on;
-      cone2Ref.current.visible = on;
-      if (on) {
-        // qCone = Ry(yaw) * Rx(π/2): apex(+Y) → +Z → car's forward.
-        // Base(-Y) extends in car's backward direction.
-        qY.setFromAxisAngle(yAxis, yaw);
-        qCone.multiplyQuaternions(qY, qX);
+    if (on) {
+      timer.current -= dt;
+      if (timer.current <= 0) {
+        timer.current = 0.013; // burst every 13 ms
 
-        const d1 = 2.8, d2 = 3.6;   // 1.0 (rear offset) + half-height
-        const sp = 0.06, sr = 0.045; // position / rotation shake magnitudes
+        /* bright fire sparks (12 per burst) */
+        for (let k = 0; k < 12; k++) {
+          const p = firePuffs.current.find(p => !p.on);
+          if (!p) break;
+          const ox = (Math.random() - 0.5) * 1.4;
+          const oy = 0.04 + Math.random() * 0.22;
+          const local = new THREE.Vector3(ox * 0.88, oy * 0.88, -1.08 * 0.88);
+          local.applyMatrix4(car.matrixWorld);
+          p.pos.copy(local);
+          const spd = Math.abs(speedRef.current ?? 0);
+          const back = spd * 0.55 + 14;
+          p.vel.set(
+            -sY * back + (Math.random() - 0.5) * 6,
+             (Math.random() - 0.5) * 0.9 + 0.25,
+            -cY * back + (Math.random() - 0.5) * 6,
+          );
+          p.life = 0;
+          p.max  = 0.09 + Math.random() * 0.14; // very short — hot sparks die fast
+          p.on   = true;
+          /* core: white-green or bright lime */
+          p.startColor.setHex(Math.random() > 0.4 ? 0x90ffb0 : 0x3ecf6a);
+        }
 
-        cone1Ref.current.setRotationFromQuaternion(qCone);
-        cone1Ref.current.rotateX((Math.random() - 0.5) * sr);
-        cone1Ref.current.rotateZ((Math.random() - 0.5) * sr);
-        cone1Ref.current.position.set(
-          p.x - sY * d1 + (Math.random() - 0.5) * sp,
-          p.y + 0.15    + (Math.random() - 0.5) * sp * 0.4,
-          p.z - cY * d1 + (Math.random() - 0.5) * sp,
-        );
-
-        cone2Ref.current.setRotationFromQuaternion(qCone);
-        cone2Ref.current.rotateX((Math.random() - 0.5) * sr * 1.5);
-        cone2Ref.current.rotateZ((Math.random() - 0.5) * sr * 1.5);
-        cone2Ref.current.position.set(
-          p.x - sY * d2 + (Math.random() - 0.5) * sp * 1.5,
-          p.y + 0.15    + (Math.random() - 0.5) * sp * 0.5,
-          p.z - cY * d2 + (Math.random() - 0.5) * sp * 1.5,
-        );
-      }
-    }
-
-    /* ── particle burst ── */
-    if (mesh.current) {
-      if (on) {
-        timer.current -= dt;
-        if (timer.current <= 0) {
-          timer.current = 0.020;
-          for (let k = 0; k < 4; k++) {
-            const pt = puffs.current.find(p => !p.on);
-            if (!pt) break;
-            const ox = (Math.random() - 0.5) * 1.0;
-            const local = new THREE.Vector3(ox * 0.88, 0.14 * 0.88, -1.05 * 0.88);
-            local.applyMatrix4(car.matrixWorld);
-            pt.pos.copy(local);
-            const spd = Math.abs(speedRef.current ?? 0);
-            pt.vel.set(
-              -sY * (spd * 0.5 + 7) + (Math.random() - 0.5) * 3.5,
-              (Math.random() - 0.5) * 0.6 + 0.1,
-              -cY * (spd * 0.5 + 7) + (Math.random() - 0.5) * 3.5,
-            );
-            pt.life = 0;
-            pt.max  = 0.16 + Math.random() * 0.18;
-            pt.on   = true;
-          }
+        /* dark smoke plumes (4 per burst) */
+        for (let k = 0; k < 4; k++) {
+          const p = darkPuffs.current.find(p => !p.on);
+          if (!p) break;
+          const ox = (Math.random() - 0.5) * 1.6;
+          const local = new THREE.Vector3(ox * 0.88, 0.10 * 0.88, -1.18 * 0.88);
+          local.applyMatrix4(car.matrixWorld);
+          p.pos.copy(local);
+          const spd = Math.abs(speedRef.current ?? 0);
+          p.vel.set(
+            -sY * (spd * 0.35 + 7) + (Math.random() - 0.5) * 3.5,
+             (Math.random() - 0.5) * 0.5 + 0.08,
+            -cY * (spd * 0.35 + 7) + (Math.random() - 0.5) * 3.5,
+          );
+          p.life = 0;
+          p.max  = 0.28 + Math.random() * 0.22;
+          p.on   = true;
+          p.startColor.setHex(0x0a2a14); // very dark green
         }
       }
-
-      let idx = 0;
-      for (const pt of puffs.current) {
-        if (!pt.on) continue;
-        pt.life += dt;
-        if (pt.life >= pt.max) { pt.on = false; continue; }
-        pt.pos.addScaledVector(pt.vel, dt);
-        pt.vel.multiplyScalar(0.83);
-        const t  = pt.life / pt.max;
-        const sz = 0.04 + t * 0.30;
-        M.compose(pt.pos, Q.identity(), S.set(sz, sz, sz));
-        mesh.current.setMatrixAt(idx++, M);
-      }
-      for (let i = idx; i < BOOST_N; i++) {
-        M.compose(new THREE.Vector3(0, -9999, 0), Q.identity(), S.set(0.001, 0.001, 0.001));
-        mesh.current.setMatrixAt(i, M);
-      }
-      mesh.current.instanceMatrix.needsUpdate = true;
+    } else {
+      timer.current = 0;
     }
+
+    /* ── update fire sparks ── */
+    let idx = 0;
+    for (const p of firePuffs.current) {
+      if (!p.on) continue;
+      p.life += dt;
+      if (p.life >= p.max) { p.on = false; continue; }
+      p.pos.addScaledVector(p.vel, dt);
+      p.vel.multiplyScalar(0.74); // rapid deceleration — sparks snap off
+      const t  = p.life / p.max;
+      const sz = 0.08 + t * 0.10; // stay small; grows only slightly
+      M.compose(p.pos, Q.identity(), S.set(sz, sz, sz));
+      fireMesh.current.setMatrixAt(idx, M);
+      /* color: start (bright green) → black, accelerated by t² */
+      C.lerpColors(p.startColor, BLACK, t * t);
+      fireMesh.current.setColorAt(idx, C);
+      idx++;
+    }
+    for (let i = idx; i < FIRE_N; i++) {
+      M.compose(new THREE.Vector3(0, -9999, 0), Q.identity(), S.set(0.001, 0.001, 0.001));
+      fireMesh.current.setMatrixAt(i, M);
+    }
+    fireMesh.current.instanceMatrix.needsUpdate = true;
+    if (fireMesh.current.instanceColor) fireMesh.current.instanceColor.needsUpdate = true;
+
+    /* ── update dark smoke ── */
+    idx = 0;
+    for (const p of darkPuffs.current) {
+      if (!p.on) continue;
+      p.life += dt;
+      if (p.life >= p.max) { p.on = false; continue; }
+      p.pos.addScaledVector(p.vel, dt);
+      p.vel.multiplyScalar(0.86);
+      const t  = p.life / p.max;
+      const sz = 0.12 + t * 0.55; // grows as it dissipates
+      M.compose(p.pos, Q.identity(), S.set(sz, sz, sz));
+      darkMesh.current.setMatrixAt(idx, M);
+      C.lerpColors(DARKGREEN, BLACK, t);
+      darkMesh.current.setColorAt(idx, C);
+      idx++;
+    }
+    for (let i = idx; i < DARK_N; i++) {
+      M.compose(new THREE.Vector3(0, -9999, 0), Q.identity(), S.set(0.001, 0.001, 0.001));
+      darkMesh.current.setMatrixAt(i, M);
+    }
+    darkMesh.current.instanceMatrix.needsUpdate = true;
+    if (darkMesh.current.instanceColor) darkMesh.current.instanceColor.needsUpdate = true;
   });
 
   return (
     <>
-      {/* spark particles */}
-      <instancedMesh ref={mesh} args={[undefined, undefined, BOOST_N]}>
-        <sphereGeometry args={[1, 6, 6]} />
-        <meshStandardMaterial
-          color="#3ecf6a" emissive="#3ecf6a" emissiveIntensity={5}
-          transparent opacity={0.95} depthWrite={false}
-        />
+      {/* bright fire sparks */}
+      <instancedMesh ref={fireMesh} args={[undefined, undefined, FIRE_N]} frustumCulled={false}>
+        <sphereGeometry args={[1, 5, 5]} />
+        <meshBasicMaterial vertexColors transparent opacity={0.92} depthWrite={false} />
       </instancedMesh>
 
-      {/* inner bright core — tight cone */}
-      <mesh ref={cone1Ref} visible={false}>
-        <coneGeometry args={[0.52, 3.6, 12, 1, true]} />
-        <meshStandardMaterial
-          color="#3ecf6a" emissive="#3ecf6a" emissiveIntensity={9}
-          transparent opacity={0.82} depthWrite={false} side={THREE.DoubleSide}
-        />
-      </mesh>
-
-      {/* outer soft glow — wide cone */}
-      <mesh ref={cone2Ref} visible={false}>
-        <coneGeometry args={[1.25, 5.2, 12, 1, true]} />
-        <meshStandardMaterial
-          color="#3ecf6a" emissive="#3ecf6a" emissiveIntensity={3}
-          transparent opacity={0.32} depthWrite={false} side={THREE.DoubleSide}
-        />
-      </mesh>
+      {/* dark smoke body */}
+      <instancedMesh ref={darkMesh} args={[undefined, undefined, DARK_N]} frustumCulled={false}>
+        <sphereGeometry args={[1, 5, 5]} />
+        <meshBasicMaterial vertexColors transparent opacity={0.78} depthWrite={false} />
+      </instancedMesh>
     </>
   );
 }
@@ -487,7 +506,7 @@ function Headlights({ carRef }: { carRef: React.RefObject<THREE.Group> }) {
 }
 
 /* ─── Scene ────────────────────────────────────────────────────── */
-function Scene() {
+function Scene({ onProjectEnter }: { onProjectEnter: (p: Project) => void }) {
   const keys      = useKeys();
   const carRef    = useRef<THREE.Group>(null!);
   const speedRef  = useRef(0);
@@ -581,6 +600,7 @@ function Scene() {
       {/* mouse appears on RIGHT from initial camera angle (world -X = screen right) */}
       <Mouse3D initPos={[-17, 0.8, 8]} carRef={carRef} speedRef={speedRef} carBumpRef={carBump} />
 
+      <ProjectBuildings carRef={carRef} onEnter={onProjectEnter} />
       <Jeep outer={carRef} />
       <Smoke carRef={carRef} speedRef={speedRef} />
       <Headlights carRef={carRef} />
@@ -630,9 +650,116 @@ function HUD() {
   );
 }
 
+/* ─── Project popup ────────────────────────────────────────────── */
+function ProjectPopup({ project, onClose }: { project: Project; onClose: () => void }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const githubUrl = project.github ?? `https://github.com/eugeniobusta`;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "absolute", inset: 0, zIndex: 20,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: "rgba(0,0,0,0.65)",
+        backdropFilter: "blur(10px)",
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: "#ffffff",
+          borderRadius: "22px",
+          padding: "40px 44px",
+          maxWidth: "460px",
+          width: "90%",
+          boxShadow: "0 32px 100px rgba(0,0,0,0.45)",
+          fontFamily: "system-ui, -apple-system, sans-serif",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "6px" }}>
+          <h2 style={{ fontSize: "26px", fontWeight: 800, color: "#0a0a0a", margin: 0 }}>
+            {project.title}
+          </h2>
+          <span style={{
+            fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em",
+            padding: "4px 10px", borderRadius: "999px",
+            background: project.status === "live" ? "#dcfce7" : project.status === "dev" ? "#fef3c7" : "#dbeafe",
+            color: project.status === "live" ? "#15803d" : project.status === "dev" ? "#b45309" : "#1d4ed8",
+          }}>
+            {project.status.toUpperCase()}
+          </span>
+        </div>
+
+        <p style={{ fontSize: "15px", lineHeight: 1.65, color: "#4b5563", margin: "0 0 22px" }}>
+          {project.description}
+        </p>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "28px" }}>
+          {project.stack.map(s => (
+            <span key={s.name} style={{
+              padding: "5px 12px", borderRadius: "999px",
+              background: "#f3f4f6", fontSize: "12px",
+              fontFamily: "monospace", color: "#374151", fontWeight: 600,
+            }}>{s.name}</span>
+          ))}
+        </div>
+
+        <div style={{ display: "flex", gap: "12px" }}>
+          <a
+            href={githubUrl}
+            target="_blank" rel="noopener noreferrer"
+            style={{
+              flex: 1, textAlign: "center", padding: "14px 0",
+              background: "#0f172a", color: "#ffffff",
+              borderRadius: "12px", textDecoration: "none",
+              fontWeight: 700, fontSize: "15px",
+            }}
+          >
+            GitHub →
+          </a>
+          {project.live && (
+            <a
+              href={project.live}
+              target="_blank" rel="noopener noreferrer"
+              style={{
+                flex: 1, textAlign: "center", padding: "14px 0",
+                background: "#3ecf6a", color: "#ffffff",
+                borderRadius: "12px", textDecoration: "none",
+                fontWeight: 700, fontSize: "15px",
+              }}
+            >
+              Live →
+            </a>
+          )}
+        </div>
+
+        <button
+          onClick={onClose}
+          style={{
+            marginTop: "18px", width: "100%", padding: "10px 0",
+            background: "none", border: "none", cursor: "pointer",
+            color: "#9ca3af", fontSize: "13px",
+          }}
+        >
+          ESC or click anywhere to close
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Entry ────────────────────────────────────────────────────── */
 export default function LabGame() {
   const [ready, setReady] = useState(false);
+  const [activeProject, setActiveProject] = useState<Project | null>(null);
+  const handleProjectEnter = useCallback((p: Project) => setActiveProject(p), []);
+
   useEffect(() => setReady(true), []);
   if (!ready) return null;
 
@@ -644,9 +771,12 @@ export default function LabGame() {
         gl={{ antialias: true, powerPreference: "high-performance" }}
         style={{ width: "100%", height: "100%" }}
       >
-        <Scene />
+        <Scene onProjectEnter={handleProjectEnter} />
       </Canvas>
       <HUD />
+      {activeProject && (
+        <ProjectPopup project={activeProject} onClose={() => setActiveProject(null)} />
+      )}
     </div>
   );
 }
