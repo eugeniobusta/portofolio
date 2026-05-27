@@ -59,6 +59,29 @@ function useKeys() {
   return k;
 }
 
+/* ─── City roads / paths ──────────────────────────────────────── */
+function Roads() {
+  return (
+    <>
+      {/* N-S spine at x=0 — runs full world length */}
+      <mesh position={[0, 0.02, 0]} receiveShadow>
+        <boxGeometry args={[8, 0.02, WORLD]} />
+        <meshStandardMaterial color="#c8c0a8" roughness={0.95} />
+      </mesh>
+      {/* E-W connector at z=15 — side buildings row */}
+      <mesh position={[0, 0.02, 15]} receiveShadow>
+        <boxGeometry args={[WORLD - 10, 0.02, 8]} />
+        <meshStandardMaterial color="#c8c0a8" roughness={0.95} />
+      </mesh>
+      {/* E-W connector at z=35 — second row */}
+      <mesh position={[0, 0.02, 35]} receiveShadow>
+        <boxGeometry args={[WORLD - 10, 0.02, 8]} />
+        <meshStandardMaterial color="#c8c0a8" roughness={0.95} />
+      </mesh>
+    </>
+  );
+}
+
 /* ─── Ground ──────────────────────────────────────────────────── */
 function Ground() {
   const geo = useMemo(buildGround, []);
@@ -516,14 +539,15 @@ function Scene({
   onProjectEnter: (p: Project, tp: [number, number]) => void;
   teleportRef: React.RefObject<[number, number] | null>;
 }) {
-  const keys      = useKeys();
-  const carRef    = useRef<THREE.Group>(null!);
-  const speedRef  = useRef(0);
-  const carPos    = useRef(new THREE.Vector3(-2, 1, 3));
-  const carYaw    = useRef(Math.PI * 0.18);
-  const orbitRef  = useRef<any>(null);
-  const carBump   = useRef(0);
-  const boostRef  = useRef(false);
+  const keys            = useKeys();
+  const carRef          = useRef<THREE.Group>(null!);
+  const speedRef        = useRef(0);
+  const carPos          = useRef(new THREE.Vector3(-2, 1, 3));
+  const carYaw          = useRef(Math.PI * 0.18);
+  const orbitRef        = useRef<any>(null);
+  const carBump         = useRef(0);
+  const boostRef        = useRef(false);
+  const lookaheadTarget = useRef(new THREE.Vector3());
 
   useFrame(({ camera }, delta) => {
     /* ── teleport: applied the frame after popup closes ── */
@@ -533,19 +557,6 @@ function Scene({
       carPos.current.z = tz;
       speedRef.current = 0;
       (teleportRef as React.MutableRefObject<[number, number] | null>).current = null;
-    }
-
-    /* prevent camera from clipping through the ground */
-    if (camera.position.y < 1.8) camera.position.y = 1.8;
-
-    /* loosely follow the car */
-    if (orbitRef.current && carRef.current) {
-      const ctrl = orbitRef.current as any;
-      (ctrl.target as THREE.Vector3).lerp(carRef.current.position, 0.055);
-      const camDist = camera.position.distanceTo(carRef.current.position);
-      if (camDist > 38 && ctrl.spherical) {
-        ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, 28, 0.04);
-      }
     }
 
     const dt    = Math.min(delta, 0.05);
@@ -624,6 +635,27 @@ function Scene({
 
     const car = carRef.current;
     if (car) { car.position.copy(carPos.current); car.rotation.y = carYaw.current; }
+
+    /* ── heading-based lookahead camera ── */
+    if (orbitRef.current && car) {
+      const ctrl = orbitRef.current as any;
+      /* lead the camera in the direction the car is heading so the
+         destination building is always in view without manual orbit */
+      const lookaheadDist = THREE.MathUtils.clamp(Math.abs(spd) * 0.4, 2, 14);
+      lookaheadTarget.current.set(
+        carPos.current.x + Math.sin(carYaw.current) * lookaheadDist,
+        carPos.current.y,
+        carPos.current.z + Math.cos(carYaw.current) * lookaheadDist,
+      );
+      (ctrl.target as THREE.Vector3).lerp(lookaheadTarget.current, 0.055);
+      const camDist = camera.position.distanceTo(car.position);
+      if (camDist > 38 && ctrl.spherical) {
+        ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, 28, 0.04);
+      }
+    }
+
+    /* prevent camera from clipping through the ground */
+    if (camera.position.y < 1.8) camera.position.y = 1.8;
   });
 
   return (
@@ -648,6 +680,7 @@ function Scene({
       <directionalLight position={[-30, 20, -40]} intensity={0.55} color="#c8d8ff" />
 
       <Ground />
+      <Roads />
       <Boundary />
       <Pebbles />
 

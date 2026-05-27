@@ -192,30 +192,35 @@ function makeTexture(project: Project, accent: string, base: string) {
   cv.width = W; cv.height = H;
   const x = cv.getContext("2d")!;
 
-  /* pre-flip: plane has rotation [0,PI,0] which mirrors UVs;
-     this pre-mirror makes the rendered result correct. */
-  x.translate(W, 0);
-  x.scale(-1, 1);
+  /* NO pre-flip: for all building rotations (±PI/2, PI) the combined
+     group+plane rotation produces non-mirrored UVs from the viewer's
+     perspective — a pre-flip would double-mirror and look backwards. */
 
-  /* background */
+  /* Door area in canvas coords (y=0 top, y=H bottom):
+     Door occupies world y=0..DOOR_H=4.6, building height=14.
+     Canvas y for door-top = H*(1 - 4.6/14) ≈ 470.
+     Keep background only for y < DC so the door gap is transparent. */
+  const DC = 462;
+
+  /* background — above-door area only (door gap stays alpha=0) */
   x.fillStyle = base;
-  x.fillRect(0, 0, W, H);
+  x.fillRect(0, 0, W, DC);
 
   /* subtle dot-grid */
   x.fillStyle = "rgba(255,255,255,0.035)";
-  for (let i = 20; i < W; i += 28) for (let j = 20; j < H; j += 28) {
+  for (let i = 20; i < W; i += 28) for (let j = 20; j < DC; j += 28) {
     x.beginPath(); x.arc(i, j, 1.2, 0, Math.PI * 2); x.fill();
   }
 
   /* ── visual art strip ── */
-  const STRIP_H = 190;
+  const STRIP_H = 185;
   const artGrad = x.createLinearGradient(0, 0, 0, STRIP_H);
   artGrad.addColorStop(0, base);
   artGrad.addColorStop(1, accent + "18");
   x.fillStyle = artGrad;
   x.fillRect(0, 0, W, STRIP_H);
 
-  /* border */
+  /* strip border */
   x.strokeStyle = accent + "55"; x.lineWidth = 1;
   x.beginPath(); x.moveTo(0, STRIP_H); x.lineTo(W, STRIP_H); x.stroke();
 
@@ -228,75 +233,77 @@ function makeTexture(project: Project, accent: string, base: string) {
   /* ── title ── */
   x.fillStyle = "#ffffff";
   x.textAlign = "center";
-  x.font = "bold 62px Arial, sans-serif";
-  x.fillText(project.title, W / 2, STRIP_H + 68);
+  x.font = "bold 58px Arial, sans-serif";
+  x.fillText(project.title, W / 2, STRIP_H + 60);
 
   /* rule */
   x.fillStyle = accent;
-  x.fillRect(W / 2 - 44, STRIP_H + 80, 88, 3);
+  x.fillRect(W / 2 - 40, STRIP_H + 74, 80, 3);
 
   /* ── stack chips ── */
-  x.font = "bold 16px Arial, sans-serif";
-  const chipH = 30, chipR = 7;
+  x.font = "bold 15px Arial, sans-serif";
+  const chipH = 28, chipR = 7;
   const totalChipW = project.stack.slice(0, 4).reduce((sum, s) => {
-    return sum + x.measureText(s.name).width + 26 + 10;
+    return sum + x.measureText(s.name).width + 24 + 10;
   }, -10);
   let chipX = (W - totalChipW) / 2;
   for (const s of project.stack.slice(0, 4)) {
-    const cw = x.measureText(s.name).width + 26;
-    rR(x, chipX, STRIP_H + 94, cw, chipH, chipR);
+    const cw = x.measureText(s.name).width + 24;
+    rR(x, chipX, STRIP_H + 86, cw, chipH, chipR);
     x.fillStyle = "rgba(255,255,255,0.10)"; x.fill();
     x.strokeStyle = accent + "66"; x.lineWidth = 1; x.stroke();
     x.fillStyle = accent;
     x.textAlign = "center";
-    x.fillText(s.name, chipX + cw / 2, STRIP_H + 94 + chipH / 2 + 6);
+    x.fillText(s.name, chipX + cw / 2, STRIP_H + 86 + chipH / 2 + 5);
     chipX += cw + 10;
   }
 
   /* ── description ── */
   x.fillStyle = "rgba(255,255,255,0.70)";
-  x.font = "20px Arial, sans-serif";
+  x.font = "18px Arial, sans-serif";
   x.textAlign = "left";
   const words = project.description.split(" ");
-  let line = "", ly = STRIP_H + 162;
+  let line = "", ly = STRIP_H + 152;
   for (const w of words) {
     const test = line ? line + " " + w : w;
     if (x.measureText(test).width > W - 56) {
-      if (ly < 490) x.fillText(line, 28, ly);
-      line = w; ly += 32;
+      if (ly < 370) x.fillText(line, 28, ly);
+      line = w; ly += 29;
     } else { line = test; }
   }
-  if (ly < 490 && line) x.fillText(line, 28, ly);
+  if (ly < 370 && line) x.fillText(line, 28, ly);
 
   /* ── meta row (year + status) ── */
   const statusColors: Record<string, string> = { live: "#3ecf6a", dev: "#f59e0b", complete: "#4488ff" };
   const sc = statusColors[project.status] ?? accent;
   x.fillStyle = "rgba(255,255,255,0.30)";
-  x.font = "14px Arial, sans-serif";
+  x.font = "13px Arial, sans-serif";
   x.textAlign = "left";
-  x.fillText(project.year, 28, 524);
+  x.fillText(project.year, 28, 392);
 
-  rR(x, 80, 506, 104, 28, 7);
+  rR(x, 76, 376, 96, 26, 7);
   x.fillStyle = sc + "25"; x.fill();
   x.strokeStyle = sc + "77"; x.lineWidth = 1; x.stroke();
   x.fillStyle = sc;
-  x.font = "bold 13px Arial, sans-serif";
+  x.font = "bold 12px Arial, sans-serif";
   x.textAlign = "center";
-  x.fillText(project.status.toUpperCase(), 132, 525);
+  x.fillText(project.status.toUpperCase(), 124, 393);
 
-  /* ── DRIVE IN button ── */
-  const btnX = 24, btnY = 556, btnW = W - 48, btnH = 80, btnR = 14;
+  /* ── DRIVE IN button — sits above the door-threshold line ── */
+  const btnX = 22, btnY = 405, btnW = W - 44, btnH = 46, btnR = 10;
   rR(x, btnX, btnY, btnW, btnH, btnR);
-  x.fillStyle = accent + "22"; x.fill();
-  x.strokeStyle = accent; x.lineWidth = 2; x.stroke();
+  x.fillStyle = accent + "28"; x.fill();
+  x.strokeStyle = accent; x.lineWidth = 2.5; x.stroke();
   x.fillStyle = accent;
-  x.font = "bold 30px Arial, sans-serif";
+  x.font = "bold 24px Arial, sans-serif";
   x.textAlign = "center";
-  x.fillText("▶  DRIVE IN TO EXPLORE", W / 2, btnY + btnH / 2 + 11);
+  x.fillText("▶  DRIVE IN TO EXPLORE", W / 2, btnY + btnH / 2 + 8);
 
-  /* bottom accent bar */
+  /* accent bar at the bottom of the visible area */
   x.fillStyle = accent;
-  x.fillRect(0, H - 6, W, 6);
+  x.fillRect(0, DC - 3, W, 3);
+
+  /* canvas below DC is alpha=0 → transparent door gap in the 3D plane */
 
   return new THREE.CanvasTexture(cv);
 }
@@ -395,14 +402,17 @@ function Building({
         <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={4} />
       </mesh>
 
-      {/* sign — fixed to front face, rotation [0,PI,0] faces outward;
-           canvas is pre-flipped to compensate for the UV mirror */}
+      {/* sign — fixed to front face, facing outward (rotation [0,PI,0]);
+           canvas below y≈462 is alpha=0 so the door gap renders transparent */}
       {texture && (
         <mesh position={[0, HH, -(BLDG_D / 2 + 0.01)]} rotation={[0, Math.PI, 0]}>
           <planeGeometry args={[BLDG_W, BLDG_H]} />
-          <meshBasicMaterial map={texture} transparent={false} />
+          <meshBasicMaterial map={texture} transparent alphaTest={0.08} />
         </mesh>
       )}
+
+      {/* interior ambient so you can see inside through the door */}
+      <pointLight position={[0, DOOR_H * 0.6, 1.5]} color={accent} intensity={3} distance={10} decay={2} />
 
       {/* door glow */}
       <pointLight position={[0, DOOR_H * 0.55, -(BLDG_D / 2 + 1.5)]} color={accent} intensity={9} distance={16} decay={2} />
