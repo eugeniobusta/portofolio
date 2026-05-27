@@ -35,6 +35,25 @@ function buildGround() {
   g.rotateX(-Math.PI / 2);
   const p = g.attributes.position as THREE.BufferAttribute;
   for (let i = 0; i < p.count; i++) p.setY(i, sampleH(p.getX(i), p.getZ(i)));
+
+  /* vertex colours: flat white → warm sand → stone grey → dark rock */
+  const flatC  = new THREE.Color("#eceae0");
+  const sandC  = new THREE.Color("#c8b680");
+  const stoneC = new THREE.Color("#998870");
+  const rockC  = new THREE.Color("#6a5c50");
+  const cols   = new Float32Array(p.count * 3);
+  const tmp    = new THREE.Color();
+  for (let i = 0; i < p.count; i++) {
+    const h = p.getY(i);
+    if      (h < 0.12) { tmp.copy(flatC); }
+    else if (h < 0.8)  { tmp.lerpColors(flatC,  sandC,  (h - 0.12) / 0.68); }
+    else if (h < 2.2)  { tmp.lerpColors(sandC,  stoneC, (h - 0.8)  / 1.4);  }
+    else               { tmp.lerpColors(stoneC, rockC,  Math.min(1, (h - 2.2) / 1.2)); }
+    cols[i * 3]     = tmp.r;
+    cols[i * 3 + 1] = tmp.g;
+    cols[i * 3 + 2] = tmp.b;
+  }
+  g.setAttribute("color", new THREE.BufferAttribute(cols, 3));
   g.computeVertexNormals();
   return g;
 }
@@ -87,7 +106,7 @@ function Ground() {
   const geo = useMemo(buildGround, []);
   return (
     <mesh geometry={geo} receiveShadow>
-      <meshStandardMaterial color="#e8e8e0" roughness={0.95} />
+      <meshStandardMaterial vertexColors roughness={0.95} />
     </mesh>
   );
 }
@@ -528,6 +547,126 @@ function Headlights({ carRef }: { carRef: React.RefObject<THREE.Group> }) {
   );
 }
 
+/* ─── Mountain warning sign ──────────────────────────────────── */
+function MountainWarning({ position }: { position: [number, number, number] }) {
+  const texture = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const W = 256, H = 256;
+    const c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    const ctx = c.getContext("2d")!;
+
+    ctx.fillStyle = "#f5c518";
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = "#111";
+    ctx.lineWidth = 14;
+    ctx.strokeRect(7, 7, W - 14, H - 14);
+
+    /* left mountain */
+    ctx.fillStyle = "#111";
+    ctx.beginPath();
+    ctx.moveTo(18, 196); ctx.lineTo(95, 54); ctx.lineTo(172, 196);
+    ctx.closePath(); ctx.fill();
+    /* right mountain (lighter, overlaps) */
+    ctx.fillStyle = "#333";
+    ctx.beginPath();
+    ctx.moveTo(88, 196); ctx.lineTo(158, 90); ctx.lineTo(238, 196);
+    ctx.closePath(); ctx.fill();
+    /* snow caps */
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.moveTo(83, 76); ctx.lineTo(95, 54);  ctx.lineTo(107, 76);  ctx.fill();
+    ctx.beginPath(); ctx.moveTo(148, 108); ctx.lineTo(158, 90); ctx.lineTo(168, 108); ctx.fill();
+
+    ctx.fillStyle = "#111";
+    ctx.font = "bold 23px Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("MOUNTAINS", W / 2, 237);
+
+    return new THREE.CanvasTexture(c);
+  }, []);
+
+  return (
+    <group position={position}>
+      {/* galvanized post */}
+      <mesh position={[0, 2.6, 0]} castShadow>
+        <cylinderGeometry args={[0.055, 0.07, 5.2, 8]} />
+        <meshStandardMaterial color="#8a9898" metalness={0.65} roughness={0.35} />
+      </mesh>
+      {/* sign face — rotation.y=π/2 → normal faces +X toward road, UVs non-mirrored */}
+      {texture && (
+        <mesh position={[0, 4.8, 0]} rotation={[0, Math.PI / 2, 0]} castShadow>
+          <planeGeometry args={[1.9, 1.9]} />
+          <meshStandardMaterial map={texture} side={THREE.DoubleSide} roughness={0.55} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
+/* ─── Rocks in mountain zone ──────────────────────────────────── */
+function MountainRocks() {
+  const bigRef   = useRef<THREE.InstancedMesh>(null!);
+  const smallRef = useRef<THREE.InstancedMesh>(null!);
+
+  useEffect(() => {
+    const M = new THREE.Matrix4();
+    const Q = new THREE.Quaternion();
+    const S = new THREE.Vector3();
+
+    /* big boulders */
+    let s = 8421;
+    const rand = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+    let idx = 0;
+    for (let tries = 0; tries < 600 && idx < 55; tries++) {
+      const x = -(8 + rand() * 34);
+      const z = (rand() - 0.5) * 88;
+      const h = sampleH(x, z);
+      if (h < 0.30) continue;
+      const sx = 0.40 + rand() * 0.90;
+      const sy = 0.28 + rand() * 0.65;
+      const sz = 0.35 + rand() * 0.80;
+      Q.setFromEuler(new THREE.Euler(rand() * 0.7, rand() * Math.PI * 2, rand() * 0.6));
+      S.set(sx, sy, sz);
+      M.compose(new THREE.Vector3(x, h + sy * 0.38, z), Q, S);
+      bigRef.current.setMatrixAt(idx++, M);
+    }
+    bigRef.current.count = idx;
+    bigRef.current.instanceMatrix.needsUpdate = true;
+
+    /* small rubble, wider spread */
+    s = 3377;
+    idx = 0;
+    for (let tries = 0; tries < 800 && idx < 120; tries++) {
+      const x = -(6 + rand() * 38);
+      const z = (rand() - 0.5) * 88;
+      const h = sampleH(x, z);
+      if (h < 0.08) continue;
+      const sc = 0.06 + rand() * 0.22;
+      const sy = sc * (0.45 + rand() * 0.7);
+      S.set(sc, sy, sc * (0.6 + rand() * 0.55));
+      Q.setFromEuler(new THREE.Euler(rand() * 1.4, rand() * Math.PI * 2, rand() * 1.4));
+      M.compose(new THREE.Vector3(x, h + sy * 0.45, z), Q, S);
+      smallRef.current.setMatrixAt(idx++, M);
+    }
+    smallRef.current.count = idx;
+    smallRef.current.instanceMatrix.needsUpdate = true;
+  }, []);
+
+  return (
+    <>
+      <instancedMesh ref={bigRef} args={[undefined, undefined, 55]} frustumCulled={false} castShadow receiveShadow>
+        <dodecahedronGeometry args={[1, 0]} />
+        <meshStandardMaterial color="#78706a" roughness={0.94} metalness={0.04} />
+      </instancedMesh>
+      <instancedMesh ref={smallRef} args={[undefined, undefined, 120]} frustumCulled={false} castShadow receiveShadow>
+        <dodecahedronGeometry args={[1, 0]} />
+        <meshStandardMaterial color="#8c8480" roughness={0.92} />
+      </instancedMesh>
+    </>
+  );
+}
+
 /* ─── Scene ────────────────────────────────────────────────────── */
 const CAR_R = 1.35; // collision radius
 const HW = BLDG_W / 2, HD = BLDG_D / 2, HDW = DOOR_W / 2;
@@ -555,6 +694,7 @@ function Scene({
   const carRoll         = useRef(0);
   const carPitch        = useRef(0);
   const flippedRef      = useRef(false);
+  const flipTimer       = useRef(0);
 
   useFrame(({ camera }, delta) => {
     /* ── teleport: applied the frame after popup closes ── */
@@ -636,9 +776,12 @@ function Scene({
     }
 
     carBump.current *= 0.82;
-    const ground = sampleH(carPos.current.x, carPos.current.z);
-    carPos.current.y = THREE.MathUtils.lerp(
-      carPos.current.y, ground + 0.26 + carBump.current, 0.22
+    const ground  = sampleH(carPos.current.x, carPos.current.z);
+    const targetY = ground + 0.26 + carBump.current;
+    /* hard floor so car never clips into terrain on steep ascents */
+    carPos.current.y = Math.max(
+      ground + 0.20,
+      THREE.MathUtils.lerp(carPos.current.y, targetY, 0.30),
     );
 
     /* ── right-car request ── */
@@ -646,6 +789,7 @@ function Scene({
       flippedRef.current  = false;
       carRoll.current     = 0;
       carPitch.current    = 0;
+      flipTimer.current   = 0;
       carPos.current.set(0, sampleH(0, 3) + 0.26, 3);
       speedRef.current    = 0;
       rightCarRef.current = false;
@@ -663,13 +807,19 @@ function Scene({
       const cY  = Math.cos(carYaw.current), sY2 = Math.sin(carYaw.current);
       const localRight   =  wSX * cY  - wSZ * sY2;
       const localForward =  wSX * sY2 + wSZ * cY;
-      carRoll.current  = THREE.MathUtils.lerp(carRoll.current,  Math.atan(localRight)    * 0.85, 0.10);
-      carPitch.current = THREE.MathUtils.lerp(carPitch.current, Math.atan(-localForward) * 0.85, 0.10);
-      if (Math.abs(localRight) > 0.38 && Math.abs(spd) > 6) {
-        carRoll.current    = Math.sign(localRight) * Math.PI * 0.80;
-        flippedRef.current = true;
-        speedRef.current   = 0;
-        onFlip();
+      carRoll.current  = THREE.MathUtils.lerp(carRoll.current,  Math.atan(localRight)    * 0.75, 0.08);
+      carPitch.current = THREE.MathUtils.lerp(carPitch.current, Math.atan(-localForward) * 0.75, 0.08);
+      if (Math.abs(localRight) > 0.45 && Math.abs(spd) > 7) {
+        flipTimer.current += dt;
+        if (flipTimer.current > 0.22) {
+          carRoll.current    = Math.sign(localRight) * Math.PI * 0.80;
+          flippedRef.current = true;
+          speedRef.current   = 0;
+          flipTimer.current  = 0;
+          onFlip();
+        }
+      } else {
+        flipTimer.current = 0;
       }
     } else {
       /* settle into fully flipped position */
@@ -733,6 +883,9 @@ function Scene({
       <Roads />
       <Boundary />
       <Pebbles />
+      <MountainRocks />
+      <MountainWarning position={[-7, 0,  4]} />
+      <MountainWarning position={[-7, 0, 23]} />
 
       {/* scene objects */}
       <InfoPoster position={[0, 0, 46]} />
