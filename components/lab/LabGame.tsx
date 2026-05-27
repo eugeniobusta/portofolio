@@ -64,19 +64,19 @@ function Roads() {
   return (
     <>
       {/* N-S spine at x=0 — runs full world length */}
-      <mesh position={[0, 0.02, 0]} receiveShadow>
-        <boxGeometry args={[8, 0.02, WORLD]} />
-        <meshStandardMaterial color="#c8c0a8" roughness={0.95} />
+      <mesh position={[0, 0.06, 0]} receiveShadow>
+        <boxGeometry args={[8, 0.12, WORLD]} />
+        <meshStandardMaterial color="#ccc4ae" roughness={0.92} />
       </mesh>
       {/* E-W connector at z=15 — side buildings row */}
-      <mesh position={[0, 0.02, 15]} receiveShadow>
-        <boxGeometry args={[WORLD - 10, 0.02, 8]} />
-        <meshStandardMaterial color="#c8c0a8" roughness={0.95} />
+      <mesh position={[0, 0.06, 15]} receiveShadow>
+        <boxGeometry args={[WORLD - 10, 0.12, 8]} />
+        <meshStandardMaterial color="#ccc4ae" roughness={0.92} />
       </mesh>
       {/* E-W connector at z=35 — second row */}
-      <mesh position={[0, 0.02, 35]} receiveShadow>
-        <boxGeometry args={[WORLD - 10, 0.02, 8]} />
-        <meshStandardMaterial color="#c8c0a8" roughness={0.95} />
+      <mesh position={[0, 0.06, 35]} receiveShadow>
+        <boxGeometry args={[WORLD - 10, 0.12, 8]} />
+        <meshStandardMaterial color="#ccc4ae" roughness={0.92} />
       </mesh>
     </>
   );

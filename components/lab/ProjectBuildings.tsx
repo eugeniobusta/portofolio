@@ -212,8 +212,8 @@ function makeTexture(project: Project, accent: string, base: string) {
     x.beginPath(); x.arc(i, j, 1.2, 0, Math.PI * 2); x.fill();
   }
 
-  /* ── visual art strip ── */
-  const STRIP_H = 185;
+  /* ── visual art strip (smaller to give more room to description) ── */
+  const STRIP_H = 150;
   const artGrad = x.createLinearGradient(0, 0, 0, STRIP_H);
   artGrad.addColorStop(0, base);
   artGrad.addColorStop(1, accent + "18");
@@ -233,45 +233,45 @@ function makeTexture(project: Project, accent: string, base: string) {
   /* ── title ── */
   x.fillStyle = "#ffffff";
   x.textAlign = "center";
-  x.font = "bold 58px Arial, sans-serif";
-  x.fillText(project.title, W / 2, STRIP_H + 60);
+  x.font = "bold 52px Arial, sans-serif";
+  x.fillText(project.title, W / 2, STRIP_H + 52);
 
   /* rule */
   x.fillStyle = accent;
-  x.fillRect(W / 2 - 40, STRIP_H + 74, 80, 3);
+  x.fillRect(W / 2 - 38, STRIP_H + 64, 76, 3);
 
   /* ── stack chips ── */
-  x.font = "bold 15px Arial, sans-serif";
-  const chipH = 28, chipR = 7;
+  x.font = "bold 14px Arial, sans-serif";
+  const chipH = 26, chipR = 6;
   const totalChipW = project.stack.slice(0, 4).reduce((sum, s) => {
-    return sum + x.measureText(s.name).width + 24 + 10;
-  }, -10);
+    return sum + x.measureText(s.name).width + 22 + 9;
+  }, -9);
   let chipX = (W - totalChipW) / 2;
   for (const s of project.stack.slice(0, 4)) {
-    const cw = x.measureText(s.name).width + 24;
-    rR(x, chipX, STRIP_H + 86, cw, chipH, chipR);
+    const cw = x.measureText(s.name).width + 22;
+    rR(x, chipX, STRIP_H + 74, cw, chipH, chipR);
     x.fillStyle = "rgba(255,255,255,0.10)"; x.fill();
     x.strokeStyle = accent + "66"; x.lineWidth = 1; x.stroke();
     x.fillStyle = accent;
     x.textAlign = "center";
-    x.fillText(s.name, chipX + cw / 2, STRIP_H + 86 + chipH / 2 + 5);
-    chipX += cw + 10;
+    x.fillText(s.name, chipX + cw / 2, STRIP_H + 74 + chipH / 2 + 5);
+    chipX += cw + 9;
   }
 
-  /* ── description ── */
-  x.fillStyle = "rgba(255,255,255,0.70)";
-  x.font = "18px Arial, sans-serif";
+  /* ── description — more room, 5 lines max ── */
+  x.fillStyle = "rgba(255,255,255,0.72)";
+  x.font = "17px Arial, sans-serif";
   x.textAlign = "left";
   const words = project.description.split(" ");
-  let line = "", ly = STRIP_H + 152;
+  let line = "", ly = STRIP_H + 128;
   for (const w of words) {
     const test = line ? line + " " + w : w;
-    if (x.measureText(test).width > W - 56) {
-      if (ly < 370) x.fillText(line, 28, ly);
-      line = w; ly += 29;
+    if (x.measureText(test).width > W - 52) {
+      if (ly < 390) x.fillText(line, 26, ly);
+      line = w; ly += 27;
     } else { line = test; }
   }
-  if (ly < 370 && line) x.fillText(line, 28, ly);
+  if (ly < 390 && line) x.fillText(line, 26, ly);
 
   /* ── meta row (year + status) ── */
   const statusColors: Record<string, string> = { live: "#3ecf6a", dev: "#f59e0b", complete: "#4488ff" };
@@ -279,23 +279,23 @@ function makeTexture(project: Project, accent: string, base: string) {
   x.fillStyle = "rgba(255,255,255,0.30)";
   x.font = "13px Arial, sans-serif";
   x.textAlign = "left";
-  x.fillText(project.year, 28, 392);
+  x.fillText(project.year, 26, 408);
 
-  rR(x, 76, 376, 96, 26, 7);
+  rR(x, 74, 393, 96, 25, 6);
   x.fillStyle = sc + "25"; x.fill();
   x.strokeStyle = sc + "77"; x.lineWidth = 1; x.stroke();
   x.fillStyle = sc;
   x.font = "bold 12px Arial, sans-serif";
   x.textAlign = "center";
-  x.fillText(project.status.toUpperCase(), 124, 393);
+  x.fillText(project.status.toUpperCase(), 122, 409);
 
   /* ── DRIVE IN button — sits above the door-threshold line ── */
-  const btnX = 22, btnY = 405, btnW = W - 44, btnH = 46, btnR = 10;
+  const btnX = 22, btnY = 416, btnW = W - 44, btnH = 40, btnR = 9;
   rR(x, btnX, btnY, btnW, btnH, btnR);
   x.fillStyle = accent + "28"; x.fill();
   x.strokeStyle = accent; x.lineWidth = 2.5; x.stroke();
   x.fillStyle = accent;
-  x.font = "bold 24px Arial, sans-serif";
+  x.font = "bold 22px Arial, sans-serif";
   x.textAlign = "center";
   x.fillText("▶  DRIVE IN TO EXPLORE", W / 2, btnY + btnH / 2 + 8);
 
