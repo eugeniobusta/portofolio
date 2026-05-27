@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useMemo, useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Sky, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -667,6 +668,192 @@ function MountainRocks() {
   );
 }
 
+/* ─── Secret wobbly path to the corner ───────────────────────── */
+const SPATH_PTS: [number, number][] = [
+  [ 1,  -6], [ 5, -10], [ 2, -15], [ 8, -19],
+  [ 4, -23], [10, -27], [ 5, -31], [13, -35],
+  [ 8, -38], [17, -41], [27, -43], [36, -44],
+  [42, -44], [44, -43],
+];
+
+function SecretPath() {
+  const geo = useMemo(() => {
+    const W = 2.4;
+    const verts: number[] = [];
+    const idx: number[] = [];
+
+    for (let i = 0; i < SPATH_PTS.length; i++) {
+      const [x, z] = SPATH_PTS[i];
+      let tx: number, tz: number;
+      if (i < SPATH_PTS.length - 1) {
+        tx = SPATH_PTS[i + 1][0] - x; tz = SPATH_PTS[i + 1][1] - z;
+      } else {
+        tx = x - SPATH_PTS[i - 1][0]; tz = z - SPATH_PTS[i - 1][1];
+      }
+      const len = Math.sqrt(tx * tx + tz * tz);
+      const nx = -tz / len, nz = tx / len;
+      verts.push(x + nx * W / 2, 0.007, z + nz * W / 2);
+      verts.push(x - nx * W / 2, 0.007, z - nz * W / 2);
+    }
+    for (let i = 0; i < SPATH_PTS.length - 1; i++) {
+      const b = i * 2;
+      idx.push(b, b + 2, b + 1,  b + 1, b + 2, b + 3);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(verts), 3));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    return g;
+  }, []);
+
+  return (
+    <mesh geometry={geo} receiveShadow>
+      <meshStandardMaterial
+        color="#b0a898"
+        roughness={0.97}
+        transparent
+        opacity={0.60}
+        polygonOffset
+        polygonOffsetFactor={-3}
+        polygonOffsetUnits={-3}
+      />
+    </mesh>
+  );
+}
+
+/* ─── Dog house (secret corner) ──────────────────────────────── */
+const DOG_POS: [number, number, number] = [44, 0, -44];
+const DOG_TRIGGER_R = 3.5;
+
+function DogHouse({
+  carPosRef,
+  onEnter,
+}: {
+  carPosRef: React.MutableRefObject<THREE.Vector3>;
+  onEnter: () => void;
+}) {
+  const enteredRef = useRef(false);
+
+  const signTex = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const W = 480, H = 280;
+    const c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    const ctx = c.getContext("2d")!;
+
+    ctx.fillStyle = "#f0e8d5";
+    ctx.fillRect(0, 0, W, H);
+
+    /* wood grain */
+    ctx.strokeStyle = "rgba(155,115,60,0.20)";
+    ctx.lineWidth = 1.2;
+    for (let y = 12; y < H; y += 17) {
+      ctx.beginPath();
+      ctx.moveTo(0, y + Math.sin(y * 0.4) * 2);
+      ctx.lineTo(W, y + Math.cos(y * 0.25) * 3);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = "#7a5a18";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(3, 3, W - 6, H - 6);
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#2c1a06";
+    ctx.font = "italic bold 21px Georgia, serif";
+    ctx.fillText("Made it to the corner?", W / 2, 44);
+
+    ctx.fillStyle = "#4a3010";
+    ctx.font = "17px Georgia, serif";
+    ctx.fillText("That means you're curious about who I am —", W / 2, 82);
+    ctx.fillText("maybe ready to join my adventure,", W / 2, 108);
+    ctx.fillText("or invite me to yours.", W / 2, 132);
+
+    ctx.strokeStyle = "#c89030";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(52, 152); ctx.lineTo(W - 52, 152); ctx.stroke();
+
+    ctx.fillStyle = "#c0392b";
+    ctx.font = "bold 18px Georgia, serif";
+    ctx.fillText("Come in. Let's find out.", W / 2, 180);
+
+    ctx.fillStyle = "#aaa";
+    ctx.font = "11px Arial, sans-serif";
+    ctx.fillText("↓  hidden page  ↓", W / 2, 215);
+
+    return new THREE.CanvasTexture(c);
+  }, []);
+
+  useFrame(() => {
+    if (enteredRef.current) return;
+    const dx = carPosRef.current.x - DOG_POS[0];
+    const dz = carPosRef.current.z - DOG_POS[2];
+    if (dx * dx + dz * dz < DOG_TRIGGER_R * DOG_TRIGGER_R) {
+      enteredRef.current = true;
+      onEnter();
+    }
+  });
+
+  const BW = 4.5, BH = 3.5, BD = 4.5;
+
+  return (
+    <>
+      {/* house — rotY = 3π/4 so door (-Z local) faces toward world center */}
+      <group position={DOG_POS} rotation={[0, Math.PI * 0.75, 0]}>
+        {/* body */}
+        <mesh position={[0, BH / 2, 0]} castShadow receiveShadow>
+          <boxGeometry args={[BW, BH, BD]} />
+          <meshStandardMaterial color="#c0392b" roughness={0.72} />
+        </mesh>
+        {/* roof — two angled slabs */}
+        <mesh position={[0, BH + 0.52, BD * 0.22]} rotation={[-0.50, 0, 0]} castShadow>
+          <boxGeometry args={[BW + 0.5, 0.16, BD * 0.60]} />
+          <meshStandardMaterial color="#922b21" roughness={0.65} />
+        </mesh>
+        <mesh position={[0, BH + 0.52, -BD * 0.22]} rotation={[0.50, 0, 0]} castShadow>
+          <boxGeometry args={[BW + 0.5, 0.16, BD * 0.60]} />
+          <meshStandardMaterial color="#922b21" roughness={0.65} />
+        </mesh>
+        {/* ridge beam */}
+        <mesh position={[0, BH + 1.02, 0]} castShadow>
+          <boxGeometry args={[BW + 0.55, 0.22, 0.22]} />
+          <meshStandardMaterial color="#7b241c" roughness={0.60} />
+        </mesh>
+        {/* door frame — yellow trim */}
+        <mesh position={[0, 1.05, -(BD / 2 + 0.04)]}>
+          <boxGeometry args={[1.90, 2.10, 0.06]} />
+          <meshStandardMaterial color="#e8cf70" roughness={0.80} />
+        </mesh>
+        {/* door void */}
+        <mesh position={[0, 0.90, -(BD / 2 + 0.06)]}>
+          <boxGeometry args={[1.36, 1.80, 0.05]} />
+          <meshStandardMaterial color="#060304" roughness={1} />
+        </mesh>
+        {/* warm interior glow through doorway */}
+        <pointLight position={[0, 1.0, 0.5]} color="#ff9933" intensity={4} distance={8} decay={2} />
+      </group>
+
+      {/* sign on stakes — rotation.y = -π/4 gives correct (non-mirrored) UV for approach from center */}
+      {signTex && (
+        <group position={[37, 0, -37]}>
+          <mesh position={[-0.85, 1.25, 0]} rotation={[0.06, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.045, 0.062, 2.5, 6]} />
+            <meshStandardMaterial color="#8b6820" roughness={0.90} />
+          </mesh>
+          <mesh position={[0.85, 1.25, 0]} rotation={[0.06, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.045, 0.062, 2.5, 6]} />
+            <meshStandardMaterial color="#8b6820" roughness={0.90} />
+          </mesh>
+          <mesh position={[0, 2.7, 0]} rotation={[0, -Math.PI / 4, 0]} castShadow>
+            <planeGeometry args={[3.8, 2.2]} />
+            <meshStandardMaterial map={signTex} side={THREE.DoubleSide} roughness={0.58} />
+          </mesh>
+        </group>
+      )}
+    </>
+  );
+}
+
 /* ─── Scene ────────────────────────────────────────────────────── */
 const CAR_R = 1.35; // collision radius
 const HW = BLDG_W / 2, HD = BLDG_D / 2, HDW = DOOR_W / 2;
@@ -676,11 +863,13 @@ function Scene({
   teleportRef,
   onFlip,
   rightCarRef,
+  onAboutEnter,
 }: {
   onProjectEnter: (p: Project, tp: [number, number]) => void;
   teleportRef: React.RefObject<[number, number] | null>;
   onFlip: () => void;
   rightCarRef: React.MutableRefObject<boolean>;
+  onAboutEnter: () => void;
 }) {
   const keys            = useKeys();
   const carRef          = useRef<THREE.Group>(null!);
@@ -886,6 +1075,8 @@ function Scene({
       <MountainRocks />
       <MountainWarning position={[-7, 0,  4]} />
       <MountainWarning position={[-7, 0, 23]} />
+      <SecretPath />
+      <DogHouse carPosRef={carPos} onEnter={onAboutEnter} />
 
       {/* scene objects */}
       <InfoPoster position={[0, 0, 46]} />
@@ -1088,6 +1279,7 @@ function ProjectPopup({ project, onClose }: { project: Project; onClose: () => v
 
 /* ─── Entry ────────────────────────────────────────────────────── */
 export default function LabGame() {
+  const router = useRouter();
   const [ready, setReady]                 = useState(false);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [isFlipped, setIsFlipped]         = useState(false);
@@ -1106,11 +1298,12 @@ export default function LabGame() {
     setActiveProject(null);
   }, []);
 
-  const handleFlip     = useCallback(() => setIsFlipped(true), []);
-  const handleRightCar = useCallback(() => {
+  const handleFlip       = useCallback(() => setIsFlipped(true), []);
+  const handleRightCar   = useCallback(() => {
     rightCarRef.current = true;
     setIsFlipped(false);
   }, []);
+  const handleAboutEnter = useCallback(() => router.push("/about"), [router]);
 
   useEffect(() => setReady(true), []);
   if (!ready) return null;
@@ -1128,6 +1321,7 @@ export default function LabGame() {
           teleportRef={teleportRef}
           onFlip={handleFlip}
           rightCarRef={rightCarRef}
+          onAboutEnter={handleAboutEnter}
         />
       </Canvas>
       <HUD />
