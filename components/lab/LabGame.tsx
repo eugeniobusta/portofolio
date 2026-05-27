@@ -535,9 +535,13 @@ const HW = BLDG_W / 2, HD = BLDG_D / 2, HDW = DOOR_W / 2;
 function Scene({
   onProjectEnter,
   teleportRef,
+  onFlip,
+  rightCarRef,
 }: {
   onProjectEnter: (p: Project, tp: [number, number]) => void;
   teleportRef: React.RefObject<[number, number] | null>;
+  onFlip: () => void;
+  rightCarRef: React.MutableRefObject<boolean>;
 }) {
   const keys            = useKeys();
   const carRef          = useRef<THREE.Group>(null!);
@@ -548,6 +552,9 @@ function Scene({
   const carBump         = useRef(0);
   const boostRef        = useRef(false);
   const lookaheadTarget = useRef(new THREE.Vector3());
+  const carRoll         = useRef(0);
+  const carPitch        = useRef(0);
+  const flippedRef      = useRef(false);
 
   useFrame(({ camera }, delta) => {
     /* ── teleport: applied the frame after popup closes ── */
@@ -563,6 +570,7 @@ function Scene({
     const k     = keys.current;
     const w = k.w, a = k.a, s = k.s, d = k.d, space = k[" "] ?? false;
     let spd = speedRef.current;
+    if (flippedRef.current) spd = speedRef.current = 0;
     const boost = space && !!w;
     boostRef.current = boost && Math.abs(spd) > 3;
 
@@ -633,8 +641,50 @@ function Scene({
       carPos.current.y, ground + 0.26 + carBump.current, 0.22
     );
 
+    /* ── right-car request ── */
+    if (rightCarRef.current) {
+      flippedRef.current  = false;
+      carRoll.current     = 0;
+      carPitch.current    = 0;
+      carPos.current.set(0, sampleH(0, 3) + 0.26, 3);
+      speedRef.current    = 0;
+      rightCarRef.current = false;
+    }
+
+    /* ── terrain slope → roll / pitch ── */
+    if (!flippedRef.current) {
+      const SR = 0.75;
+      const gL = sampleH(carPos.current.x - SR, carPos.current.z);
+      const gR = sampleH(carPos.current.x + SR, carPos.current.z);
+      const gF = sampleH(carPos.current.x, carPos.current.z + SR);
+      const gB = sampleH(carPos.current.x, carPos.current.z - SR);
+      const wSX = (gR - gL) / (2 * SR);
+      const wSZ = (gF - gB) / (2 * SR);
+      const cY  = Math.cos(carYaw.current), sY2 = Math.sin(carYaw.current);
+      const localRight   =  wSX * cY  - wSZ * sY2;
+      const localForward =  wSX * sY2 + wSZ * cY;
+      carRoll.current  = THREE.MathUtils.lerp(carRoll.current,  Math.atan(localRight)    * 0.85, 0.10);
+      carPitch.current = THREE.MathUtils.lerp(carPitch.current, Math.atan(-localForward) * 0.85, 0.10);
+      if (Math.abs(localRight) > 0.38 && Math.abs(spd) > 6) {
+        carRoll.current    = Math.sign(localRight) * Math.PI * 0.80;
+        flippedRef.current = true;
+        speedRef.current   = 0;
+        onFlip();
+      }
+    } else {
+      /* settle into fully flipped position */
+      const targetRoll = Math.sign(carRoll.current || 1) * Math.PI * 0.80;
+      carRoll.current  = THREE.MathUtils.lerp(carRoll.current, targetRoll, 0.15);
+    }
+
     const car = carRef.current;
-    if (car) { car.position.copy(carPos.current); car.rotation.y = carYaw.current; }
+    if (car) {
+      car.position.copy(carPos.current);
+      car.rotation.order = "YXZ";
+      car.rotation.y = carYaw.current;
+      car.rotation.x = carPitch.current;
+      car.rotation.z = carRoll.current;
+    }
 
     /* ── heading-based lookahead camera ── */
     if (orbitRef.current && car) {
@@ -885,11 +935,13 @@ function ProjectPopup({ project, onClose }: { project: Project; onClose: () => v
 
 /* ─── Entry ────────────────────────────────────────────────────── */
 export default function LabGame() {
-  const [ready, setReady]               = useState(false);
+  const [ready, setReady]                 = useState(false);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
+  const [isFlipped, setIsFlipped]         = useState(false);
   /* teleportRef is written by LabGame (on close) and read by Scene's useFrame */
-  const teleportRef      = useRef<[number, number] | null>(null);
-  const activeTeleport   = useRef<[number, number] | null>(null);
+  const teleportRef    = useRef<[number, number] | null>(null);
+  const activeTeleport = useRef<[number, number] | null>(null);
+  const rightCarRef    = useRef<boolean>(false);
 
   const handleProjectEnter = useCallback((p: Project, tp: [number, number]) => {
     activeTeleport.current = tp;
@@ -899,6 +951,12 @@ export default function LabGame() {
   const handleClose = useCallback(() => {
     teleportRef.current = activeTeleport.current;
     setActiveProject(null);
+  }, []);
+
+  const handleFlip     = useCallback(() => setIsFlipped(true), []);
+  const handleRightCar = useCallback(() => {
+    rightCarRef.current = true;
+    setIsFlipped(false);
   }, []);
 
   useEffect(() => setReady(true), []);
@@ -912,9 +970,41 @@ export default function LabGame() {
         gl={{ antialias: true, powerPreference: "high-performance" }}
         style={{ width: "100%", height: "100%" }}
       >
-        <Scene onProjectEnter={handleProjectEnter} teleportRef={teleportRef} />
+        <Scene
+          onProjectEnter={handleProjectEnter}
+          teleportRef={teleportRef}
+          onFlip={handleFlip}
+          rightCarRef={rightCarRef}
+        />
       </Canvas>
       <HUD />
+      {isFlipped && (
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 10,
+          display: "flex", alignItems: "flex-end", justifyContent: "center",
+          paddingBottom: "80px",
+          pointerEvents: "none",
+        }}>
+          <button
+            onClick={handleRightCar}
+            style={{
+              pointerEvents: "auto",
+              padding: "14px 32px",
+              background: "#3ecf6a",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "999px",
+              fontSize: "16px",
+              fontWeight: 700,
+              cursor: "pointer",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.40)",
+              letterSpacing: "0.02em",
+            }}
+          >
+            ↩ Right the car
+          </button>
+        </div>
+      )}
       {activeProject && (
         <ProjectPopup project={activeProject} onClose={handleClose} />
       )}
