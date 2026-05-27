@@ -303,9 +303,14 @@ function BoostTrail({
     }))
   );
   const timer = useRef(0);
-  const M = useMemo(() => new THREE.Matrix4(), []);
-  const Q = useMemo(() => new THREE.Quaternion(), []);
-  const S = useMemo(() => new THREE.Vector3(), []);
+  const M     = useMemo(() => new THREE.Matrix4(), []);
+  const Q     = useMemo(() => new THREE.Quaternion(), []);
+  const S     = useMemo(() => new THREE.Vector3(), []);
+  // Rx(π/2) maps cone apex (+Y) to +Z; then Ry(yaw) sends +Z to car's forward.
+  const qX    = useMemo(() => new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2), []);
+  const qY    = useMemo(() => new THREE.Quaternion(), []);
+  const qCone = useMemo(() => new THREE.Quaternion(), []);
+  const yAxis = useMemo(() => new THREE.Vector3(0, 1, 0), []);
 
   useFrame((_, delta) => {
     const dt  = Math.min(delta, 0.05);
@@ -317,19 +322,36 @@ function BoostTrail({
     const yaw = car.rotation.y;
     const sY  = Math.sin(yaw), cY = Math.cos(yaw);
 
-    /* ── position cones — apex at car rear, opening backward ── */
+    /* ── position cones — rotate via quaternion, shake each frame ── */
     if (cone1Ref.current && cone2Ref.current) {
       cone1Ref.current.visible = on;
       cone2Ref.current.visible = on;
       if (on) {
-        // ConeGeometry default: apex at +Y, base at -Y.
-        // rotation(π/2, yaw, 0): apex → car-forward (+Z world), base → car-backward (-Z world).
-        // Center offset = 1.0 (rear of body) + half-height behind car.
-        const d1 = 1.0 + 1.8, d2 = 1.0 + 2.6;
-        cone1Ref.current.position.set(p.x - sY * d1, p.y + 0.15, p.z - cY * d1);
-        cone1Ref.current.rotation.set(Math.PI / 2, yaw, 0);
-        cone2Ref.current.position.set(p.x - sY * d2, p.y + 0.15, p.z - cY * d2);
-        cone2Ref.current.rotation.set(Math.PI / 2, yaw, 0);
+        // qCone = Ry(yaw) * Rx(π/2): apex(+Y) → +Z → car's forward.
+        // Base(-Y) extends in car's backward direction.
+        qY.setFromAxisAngle(yAxis, yaw);
+        qCone.multiplyQuaternions(qY, qX);
+
+        const d1 = 2.8, d2 = 3.6;   // 1.0 (rear offset) + half-height
+        const sp = 0.06, sr = 0.045; // position / rotation shake magnitudes
+
+        cone1Ref.current.setRotationFromQuaternion(qCone);
+        cone1Ref.current.rotateX((Math.random() - 0.5) * sr);
+        cone1Ref.current.rotateZ((Math.random() - 0.5) * sr);
+        cone1Ref.current.position.set(
+          p.x - sY * d1 + (Math.random() - 0.5) * sp,
+          p.y + 0.15    + (Math.random() - 0.5) * sp * 0.4,
+          p.z - cY * d1 + (Math.random() - 0.5) * sp,
+        );
+
+        cone2Ref.current.setRotationFromQuaternion(qCone);
+        cone2Ref.current.rotateX((Math.random() - 0.5) * sr * 1.5);
+        cone2Ref.current.rotateZ((Math.random() - 0.5) * sr * 1.5);
+        cone2Ref.current.position.set(
+          p.x - sY * d2 + (Math.random() - 0.5) * sp * 1.5,
+          p.y + 0.15    + (Math.random() - 0.5) * sp * 0.5,
+          p.z - cY * d2 + (Math.random() - 0.5) * sp * 1.5,
+        );
       }
     }
 
