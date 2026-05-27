@@ -7,7 +7,7 @@ import * as THREE from "three";
 import { sampleH, WORLD, HALF } from "./terrain";
 import { InfoPoster } from "./Poster";
 import { WASDKeys, Mouse3D } from "./Props";
-import { ProjectBuildings } from "./ProjectBuildings";
+import { ProjectBuildings, BLDG_CONFIGS, BLDG_W, BLDG_D, DOOR_W, BLDG_WT } from "./ProjectBuildings";
 import { Project } from "../../data/projects";
 
 /* ─── palette ─────────────────────────────────────────────────── */
@@ -506,7 +506,16 @@ function Headlights({ carRef }: { carRef: React.RefObject<THREE.Group> }) {
 }
 
 /* ─── Scene ────────────────────────────────────────────────────── */
-function Scene({ onProjectEnter }: { onProjectEnter: (p: Project) => void }) {
+const CAR_R = 1.35; // collision radius
+const HW = BLDG_W / 2, HD = BLDG_D / 2, HDW = DOOR_W / 2;
+
+function Scene({
+  onProjectEnter,
+  teleportRef,
+}: {
+  onProjectEnter: (p: Project, tp: [number, number]) => void;
+  teleportRef: React.RefObject<[number, number] | null>;
+}) {
   const keys      = useKeys();
   const carRef    = useRef<THREE.Group>(null!);
   const speedRef  = useRef(0);
@@ -517,18 +526,22 @@ function Scene({ onProjectEnter }: { onProjectEnter: (p: Project) => void }) {
   const boostRef  = useRef(false);
 
   useFrame(({ camera }, delta) => {
+    /* ── teleport: applied the frame after popup closes ── */
+    if (teleportRef.current) {
+      const [tx, tz] = teleportRef.current;
+      carPos.current.x = tx;
+      carPos.current.z = tz;
+      speedRef.current = 0;
+      (teleportRef as React.MutableRefObject<[number, number] | null>).current = null;
+    }
+
     /* prevent camera from clipping through the ground */
     if (camera.position.y < 1.8) camera.position.y = 1.8;
 
-    /* loosely follow the car — lerp orbit target toward car position */
+    /* loosely follow the car */
     if (orbitRef.current && carRef.current) {
       const ctrl = orbitRef.current as any;
       (ctrl.target as THREE.Vector3).lerp(carRef.current.position, 0.055);
-
-      /* also close the zoom gap: if the camera drifts more than 38 units
-         from the car, gently shrink the orbit radius toward 28.
-         OrbitControls (drei) runs at priority -1 so this executes after it
-         and the updated radius is picked up on the very next frame. */
       const camDist = camera.position.distanceTo(carRef.current.position);
       if (camDist > 38 && ctrl.spherical) {
         ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, 28, 0.04);
@@ -554,11 +567,56 @@ function Scene({ onProjectEnter }: { onProjectEnter: (p: Project) => void }) {
     carPos.current.x += Math.sin(carYaw.current) * spd * dt;
     carPos.current.z += Math.cos(carYaw.current) * spd * dt;
 
-    /* soft clamp inside boundary */
+    /* boundary clamp */
     carPos.current.x = THREE.MathUtils.clamp(carPos.current.x, -HALF + 1, HALF - 1);
     carPos.current.z = THREE.MathUtils.clamp(carPos.current.z, -HALF + 1, HALF - 1);
 
-    carBump.current *= 0.82;                                          // decay bump
+    /* ── building collision ── */
+    for (const b of BLDG_CONFIGS) {
+      const bdx = carPos.current.x - b.pos[0];
+      const bdz = carPos.current.z - b.pos[2];
+      /* fast-reject: skip if car is clearly outside building bounding box */
+      if (Math.abs(bdx) > HW + CAR_R + 2 || Math.abs(bdz) > HD + CAR_R + 2) continue;
+      /* transform car position to building-local 2D space */
+      const lx = bdx * b.cRY - bdz * b.sRY;
+      const lz = bdx * b.sRY + bdz * b.cRY;
+      if (lx < -(HW + CAR_R) || lx > HW + CAR_R ||
+          lz < -(HD + CAR_R) || lz > HD + CAR_R) continue;
+
+      /* solid rects in local 2D: left column, right column, back wall */
+      const rects = [
+        { x1: -HW, x2: -HDW, z1: -HD, z2: HD },
+        { x1:  HDW, x2: HW,  z1: -HD, z2: HD },
+        { x1: -HW, x2: HW,   z1: HD - BLDG_WT, z2: HD },
+      ];
+
+      for (const r of rects) {
+        const clampX = Math.max(r.x1, Math.min(r.x2, lx));
+        const clampZ = Math.max(r.z1, Math.min(r.z2, lz));
+        const ddx = lx - clampX, ddz = lz - clampZ;
+        const dist2 = ddx * ddx + ddz * ddz;
+        if (dist2 >= CAR_R * CAR_R) continue;
+
+        let pushLX = 0, pushLZ = 0;
+        if (dist2 < 0.0001) {
+          /* car center inside rect — push toward nearest edge */
+          const nX = Math.min(lx - r.x1, r.x2 - lx);
+          const nZ = Math.min(lz - r.z1, r.z2 - lz);
+          if (nX <= nZ) pushLX = lx < (r.x1 + r.x2) / 2 ? -(nX + CAR_R) : (nX + CAR_R);
+          else          pushLZ = lz < (r.z1 + r.z2) / 2 ? -(nZ + CAR_R) : (nZ + CAR_R);
+        } else {
+          const dist = Math.sqrt(dist2);
+          pushLX = (ddx / dist) * (CAR_R - dist);
+          pushLZ = (ddz / dist) * (CAR_R - dist);
+        }
+        /* transform push back to world space: world = Ry(rotY) * local */
+        carPos.current.x += pushLX * b.cRY + pushLZ * b.sRY;
+        carPos.current.z += -pushLX * b.sRY + pushLZ * b.cRY;
+        speedRef.current *= 0.35;
+      }
+    }
+
+    carBump.current *= 0.82;
     const ground = sampleH(carPos.current.x, carPos.current.z);
     carPos.current.y = THREE.MathUtils.lerp(
       carPos.current.y, ground + 0.26 + carBump.current, 0.22
@@ -600,7 +658,7 @@ function Scene({ onProjectEnter }: { onProjectEnter: (p: Project) => void }) {
       {/* mouse appears on RIGHT from initial camera angle (world -X = screen right) */}
       <Mouse3D initPos={[-17, 0.8, 8]} carRef={carRef} speedRef={speedRef} carBumpRef={carBump} />
 
-      <ProjectBuildings carRef={carRef} onEnter={onProjectEnter} />
+      <ProjectBuildings carRef={carRef} onEnter={(p, tp) => onProjectEnter(p, tp)} />
       <Jeep outer={carRef} />
       <Smoke carRef={carRef} speedRef={speedRef} />
       <Headlights carRef={carRef} />
@@ -651,6 +709,12 @@ function HUD() {
 }
 
 /* ─── Project popup ────────────────────────────────────────────── */
+const GH_ICON = (
+  <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 18, height: 18, flexShrink: 0 }}>
+    <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+  </svg>
+);
+
 function ProjectPopup({ project, onClose }: { project: Project; onClose: () => void }) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -658,7 +722,11 @@ function ProjectPopup({ project, onClose }: { project: Project; onClose: () => v
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  const githubUrl = project.github ?? `https://github.com/eugeniobusta`;
+  const githubUrl = project.github ?? "https://github.com/eugeniobusta";
+  const talkUrl   = `/?project=${encodeURIComponent(project.title)}#contact`;
+
+  const statusBg  = project.status === "live" ? "#dcfce7" : project.status === "dev" ? "#fef3c7" : "#dbeafe";
+  const statusFg  = project.status === "live" ? "#15803d" : project.status === "dev" ? "#92400e" : "#1e40af";
 
   return (
     <div
@@ -666,41 +734,56 @@ function ProjectPopup({ project, onClose }: { project: Project; onClose: () => v
       style={{
         position: "absolute", inset: 0, zIndex: 20,
         display: "flex", alignItems: "center", justifyContent: "center",
-        background: "rgba(0,0,0,0.65)",
-        backdropFilter: "blur(10px)",
+        background: "rgba(0,0,0,0.68)",
+        backdropFilter: "blur(12px)",
       }}
     >
       <div
         onClick={e => e.stopPropagation()}
         style={{
           background: "#ffffff",
-          borderRadius: "22px",
-          padding: "40px 44px",
-          maxWidth: "460px",
-          width: "90%",
-          boxShadow: "0 32px 100px rgba(0,0,0,0.45)",
+          borderRadius: "24px",
+          padding: "36px 40px 28px",
+          maxWidth: "480px",
+          width: "92%",
+          boxShadow: "0 40px 120px rgba(0,0,0,0.5)",
           fontFamily: "system-ui, -apple-system, sans-serif",
         }}
       >
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "6px" }}>
-          <h2 style={{ fontSize: "26px", fontWeight: 800, color: "#0a0a0a", margin: 0 }}>
+        {/* ── header row ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px", flexWrap: "wrap" }}>
+          <h2 style={{ fontSize: "26px", fontWeight: 800, color: "#0a0a0a", margin: 0, flex: 1 }}>
             {project.title}
           </h2>
           <span style={{
-            fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em",
-            padding: "4px 10px", borderRadius: "999px",
-            background: project.status === "live" ? "#dcfce7" : project.status === "dev" ? "#fef3c7" : "#dbeafe",
-            color: project.status === "live" ? "#15803d" : project.status === "dev" ? "#b45309" : "#1d4ed8",
+            fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em",
+            padding: "4px 11px", borderRadius: "999px",
+            background: statusBg, color: statusFg,
+            whiteSpace: "nowrap",
           }}>
             {project.status.toUpperCase()}
           </span>
+          <a
+            href={talkUrl}
+            target="_blank" rel="noopener noreferrer"
+            style={{
+              fontSize: "12px", fontWeight: 600,
+              padding: "5px 12px", borderRadius: "999px",
+              background: "#f0fdf4", color: "#15803d",
+              border: "1px solid #86efac",
+              textDecoration: "none", whiteSpace: "nowrap",
+            }}
+          >
+            💬 Talk about this
+          </a>
         </div>
 
-        <p style={{ fontSize: "15px", lineHeight: 1.65, color: "#4b5563", margin: "0 0 22px" }}>
+        <p style={{ fontSize: "15px", lineHeight: 1.68, color: "#4b5563", margin: "14px 0 20px" }}>
           {project.description}
         </p>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "28px" }}>
+        {/* stack chips */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "7px", marginBottom: "28px" }}>
           {project.stack.map(s => (
             <span key={s.name} style={{
               padding: "5px 12px", borderRadius: "999px",
@@ -710,44 +793,57 @@ function ProjectPopup({ project, onClose }: { project: Project; onClose: () => v
           ))}
         </div>
 
-        <div style={{ display: "flex", gap: "12px" }}>
+        {/* action buttons */}
+        <div style={{ display: "flex", gap: "10px" }}>
           <a
             href={githubUrl}
             target="_blank" rel="noopener noreferrer"
             style={{
-              flex: 1, textAlign: "center", padding: "14px 0",
+              flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+              gap: "8px", padding: "14px 0",
               background: "#0f172a", color: "#ffffff",
-              borderRadius: "12px", textDecoration: "none",
+              borderRadius: "13px", textDecoration: "none",
               fontWeight: 700, fontSize: "15px",
             }}
           >
-            GitHub →
+            {GH_ICON} GitHub
           </a>
-          {project.live && (
+          {project.live ? (
             <a
               href={project.live}
               target="_blank" rel="noopener noreferrer"
               style={{
-                flex: 1, textAlign: "center", padding: "14px 0",
+                flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+                gap: "6px", padding: "14px 0",
                 background: "#3ecf6a", color: "#ffffff",
-                borderRadius: "12px", textDecoration: "none",
+                borderRadius: "13px", textDecoration: "none",
                 fontWeight: 700, fontSize: "15px",
               }}
             >
-              Live →
+              ↗ See Live
             </a>
+          ) : (
+            <span style={{
+              flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+              padding: "14px 0",
+              background: "#f9fafb", color: "#9ca3af",
+              borderRadius: "13px", fontSize: "14px",
+              border: "1px solid #e5e7eb",
+            }}>
+              Not live yet
+            </span>
           )}
         </div>
 
         <button
           onClick={onClose}
           style={{
-            marginTop: "18px", width: "100%", padding: "10px 0",
+            marginTop: "16px", width: "100%", padding: "10px 0",
             background: "none", border: "none", cursor: "pointer",
             color: "#9ca3af", fontSize: "13px",
           }}
         >
-          ESC or click anywhere to close
+          ESC or click outside to close
         </button>
       </div>
     </div>
@@ -756,9 +852,21 @@ function ProjectPopup({ project, onClose }: { project: Project; onClose: () => v
 
 /* ─── Entry ────────────────────────────────────────────────────── */
 export default function LabGame() {
-  const [ready, setReady] = useState(false);
+  const [ready, setReady]               = useState(false);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
-  const handleProjectEnter = useCallback((p: Project) => setActiveProject(p), []);
+  /* teleportRef is written by LabGame (on close) and read by Scene's useFrame */
+  const teleportRef      = useRef<[number, number] | null>(null);
+  const activeTeleport   = useRef<[number, number] | null>(null);
+
+  const handleProjectEnter = useCallback((p: Project, tp: [number, number]) => {
+    activeTeleport.current = tp;
+    setActiveProject(p);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    teleportRef.current = activeTeleport.current;
+    setActiveProject(null);
+  }, []);
 
   useEffect(() => setReady(true), []);
   if (!ready) return null;
@@ -771,11 +879,11 @@ export default function LabGame() {
         gl={{ antialias: true, powerPreference: "high-performance" }}
         style={{ width: "100%", height: "100%" }}
       >
-        <Scene onProjectEnter={handleProjectEnter} />
+        <Scene onProjectEnter={handleProjectEnter} teleportRef={teleportRef} />
       </Canvas>
       <HUD />
       {activeProject && (
-        <ProjectPopup project={activeProject} onClose={() => setActiveProject(null)} />
+        <ProjectPopup project={activeProject} onClose={handleClose} />
       )}
     </div>
   );

@@ -3,22 +3,36 @@
 import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { Billboard } from "@react-three/drei";
 import { projects, Project } from "../../data/projects";
 
-/* building + door sizing (car is ≈1.23 wide × 1.94 long × ~1.1 tall) */
-const BW = 12, BH = 14, BD = 10;
-const DW = 4.2, DH = 4.4;
-const WT = 0.5;
-const TRIGGER = 6;   // world-units from building center
+/* ── dimensions ──────────────────────────────────────────────────── */
+export const BLDG_W  = 12;
+export const BLDG_H  = 14;
+export const BLDG_D  = 10;
+export const DOOR_W  = 4.4;   // car is ~1.23 wide
+export const DOOR_H  = 4.6;
+export const BLDG_WT = 0.5;   // wall thickness
 
-const CONFIGS: { pos: [number, number, number]; rotY: number }[] = [
-  { pos: [-38, 0,  15], rotY: -Math.PI / 2 }, // door faces +X (toward center)
-  { pos: [ 38, 0,  15], rotY:  Math.PI / 2 }, // door faces -X (toward center)
+export interface BuildingConfig {
+  pos: [number, number, number];
+  rotY: number;
+  cRY: number;
+  sRY: number;
+}
+
+const RAW: { pos: [number, number, number]; rotY: number }[] = [
+  { pos: [-38, 0,  15], rotY: -Math.PI / 2 },
+  { pos: [ 38, 0,  15], rotY:  Math.PI / 2 },
   { pos: [-38, 0,  35], rotY: -Math.PI / 2 },
   { pos: [ 38, 0,  35], rotY:  Math.PI / 2 },
-  { pos: [  0, 0, -36], rotY:  Math.PI     }, // door faces +Z (toward player start)
+  { pos: [  0, 0, -36], rotY:  Math.PI     },
 ];
+
+export const BLDG_CONFIGS: BuildingConfig[] = RAW.map(c => ({
+  ...c,
+  cRY: Math.cos(c.rotY),
+  sRY: Math.sin(c.rotY),
+}));
 
 const ACCENTS = ["#3ecf6a", "#4488ff", "#ff6644", "#44ccff", "#ffaa44"];
 const BASES   = ["#0a1a0f", "#080d1a", "#1a0a06", "#061218", "#141008"];
@@ -33,185 +47,365 @@ function rR(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: num
   c.closePath();
 }
 
+/* ── per-project visual art in the header strip ─────────────────── */
+function drawVisual(
+  ctx: CanvasRenderingContext2D,
+  visual: Project["visual"],
+  accent: string,
+  W: number,
+  stripH: number,
+) {
+  const cx = W / 2, cy = stripH / 2;
+
+  switch (visual) {
+    case "pitch": {
+      /* two phones connected by a dotted arc */
+      const drawPhone = (px: number, py: number) => {
+        rR(ctx, px - 22, py - 38, 44, 76, 6);
+        ctx.strokeStyle = accent; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,0.07)"; ctx.fill();
+        /* screen */
+        ctx.fillStyle = accent + "33";
+        ctx.fillRect(px - 15, py - 28, 30, 46);
+      };
+      drawPhone(cx - 100, cy);
+      drawPhone(cx + 100, cy);
+      /* arc */
+      ctx.strokeStyle = accent + "88"; ctx.lineWidth = 2;
+      ctx.setLineDash([5, 6]);
+      ctx.beginPath();
+      ctx.moveTo(cx - 78, cy);
+      ctx.bezierCurveTo(cx - 30, cy - 40, cx + 30, cy - 40, cx + 78, cy);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      [cx - 78, cx, cx + 78].forEach(px => {
+        ctx.fillStyle = accent;
+        ctx.beginPath(); ctx.arc(px, cy, 5, 0, Math.PI * 2); ctx.fill();
+      });
+      break;
+    }
+    case "cosmosbusta": {
+      /* orbits + planets */
+      const radii = [30, 55, 82];
+      const planets = [
+        { r: 30, angle: 0.8, size: 6, col: "#c0d8ff" },
+        { r: 55, angle: 2.2, size: 9, col: "#ffd090" },
+        { r: 82, angle: 4.5, size: 7, col: "#90e8c0" },
+      ];
+      radii.forEach(r => {
+        ctx.strokeStyle = accent + "44"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+      });
+      /* sun */
+      const sg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 18);
+      sg.addColorStop(0, "#fff8c0"); sg.addColorStop(1, "#ffaa00");
+      ctx.fillStyle = sg;
+      ctx.beginPath(); ctx.arc(cx, cy, 18, 0, Math.PI * 2); ctx.fill();
+      planets.forEach(p => {
+        ctx.fillStyle = p.col;
+        const px = cx + Math.cos(p.angle) * p.r;
+        const py = cy + Math.sin(p.angle) * p.r;
+        ctx.beginPath(); ctx.arc(px, py, p.size, 0, Math.PI * 2); ctx.fill();
+      });
+      break;
+    }
+    case "voice": {
+      /* microphone + sound waves */
+      /* body */
+      rR(ctx, cx - 16, cy - 38, 32, 48, 16);
+      ctx.fillStyle = accent + "cc"; ctx.fill();
+      /* stand */
+      ctx.strokeStyle = accent; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(cx, cy + 10, 26, Math.PI, 0); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx, cy + 36); ctx.lineTo(cx, cy + 48); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - 14, cy + 48); ctx.lineTo(cx + 14, cy + 48); ctx.stroke();
+      /* waves */
+      [44, 60, 76].forEach((r, i) => {
+        ctx.strokeStyle = accent + ["55", "33", "1a"][i];
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy - 14, r, -Math.PI * 0.55, Math.PI * 0.55);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy - 14, r, Math.PI - Math.PI * 0.55, Math.PI + Math.PI * 0.55);
+        ctx.stroke();
+      });
+      break;
+    }
+    case "startup": {
+      /* 2×2 video tiles */
+      const tw = 90, th = 60, gap = 12;
+      const ox = cx - tw - gap / 2, oy = cy - th - gap / 2;
+      const tiles = [
+        { x: ox, y: oy }, { x: ox + tw + gap, y: oy },
+        { x: ox, y: oy + th + gap }, { x: ox + tw + gap, y: oy + th + gap },
+      ];
+      tiles.forEach((t, i) => {
+        rR(ctx, t.x, t.y, tw, th, 6);
+        ctx.fillStyle = i === 1 ? accent + "44" : "rgba(255,255,255,0.07)"; ctx.fill();
+        ctx.strokeStyle = i === 1 ? accent : accent + "33"; ctx.lineWidth = 1.5; ctx.stroke();
+        /* avatar circle */
+        ctx.fillStyle = i === 1 ? accent : "#888";
+        ctx.beginPath(); ctx.arc(t.x + tw / 2, t.y + th / 2 - 4, 14, 0, Math.PI * 2); ctx.fill();
+      });
+      /* connecting arrows */
+      ctx.strokeStyle = accent; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(ox + tw + 2, oy + th / 2);
+      ctx.lineTo(ox + tw + gap - 2, oy + th / 2);
+      ctx.stroke();
+      break;
+    }
+    case "tennis": {
+      /* overhead court */
+      const cw = 160, ch = 100;
+      const bx = cx - cw / 2, by = cy - ch / 2;
+      /* court */
+      ctx.fillStyle = "#2a5a30";
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
+      ctx.fillRect(bx, by, cw, ch);
+      ctx.strokeRect(bx, by, cw, ch);
+      /* net */
+      ctx.beginPath(); ctx.moveTo(cx, by); ctx.lineTo(cx, by + ch); ctx.stroke();
+      /* service lines */
+      ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(bx, by + ch * 0.2); ctx.lineTo(bx + cw, by + ch * 0.2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(bx, by + ch * 0.8); ctx.lineTo(bx + cw, by + ch * 0.8); ctx.stroke();
+      /* ball */
+      const ballX = cx - 30, ballY = cy - 10;
+      ctx.fillStyle = "#ccff00";
+      ctx.beginPath(); ctx.arc(ballX, ballY, 10, 0, Math.PI * 2); ctx.fill();
+      /* ball seam */
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(ballX, ballY, 10, 0.3, 1.2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(ballX, ballY, 10, 3.5, 4.4); ctx.stroke();
+      break;
+    }
+  }
+}
+
+/* ── canvas sign texture ─────────────────────────────────────────── */
 function makeTexture(project: Project, accent: string, base: string) {
   if (typeof window === "undefined") return null;
-  const W = 512, H = 700;
+  const W = 600, H = 700;
   const cv = document.createElement("canvas");
   cv.width = W; cv.height = H;
   const x = cv.getContext("2d")!;
 
+  /* pre-flip: plane has rotation [0,PI,0] which mirrors UVs;
+     this pre-mirror makes the rendered result correct. */
+  x.translate(W, 0);
+  x.scale(-1, 1);
+
+  /* background */
   x.fillStyle = base;
   x.fillRect(0, 0, W, H);
 
-  /* accent bars */
+  /* subtle dot-grid */
+  x.fillStyle = "rgba(255,255,255,0.035)";
+  for (let i = 20; i < W; i += 28) for (let j = 20; j < H; j += 28) {
+    x.beginPath(); x.arc(i, j, 1.2, 0, Math.PI * 2); x.fill();
+  }
+
+  /* ── visual art strip ── */
+  const STRIP_H = 190;
+  const artGrad = x.createLinearGradient(0, 0, 0, STRIP_H);
+  artGrad.addColorStop(0, base);
+  artGrad.addColorStop(1, accent + "18");
+  x.fillStyle = artGrad;
+  x.fillRect(0, 0, W, STRIP_H);
+
+  /* border */
+  x.strokeStyle = accent + "55"; x.lineWidth = 1;
+  x.beginPath(); x.moveTo(0, STRIP_H); x.lineTo(W, STRIP_H); x.stroke();
+
+  drawVisual(x, project.visual, accent, W, STRIP_H);
+
+  /* accent top bar */
   x.fillStyle = accent;
-  x.fillRect(0, 0, W, 10);
-  x.fillRect(0, H - 10, W, 10);
+  x.fillRect(0, 0, W, 6);
 
-  /* subtle grid */
-  x.strokeStyle = "rgba(255,255,255,0.04)";
-  x.lineWidth = 1;
-  for (let i = 0; i < W; i += 32) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, H); x.stroke(); }
-  for (let j = 0; j < H; j += 32) { x.beginPath(); x.moveTo(0, j); x.lineTo(W, j); x.stroke(); }
-
-  /* title */
+  /* ── title ── */
   x.fillStyle = "#ffffff";
   x.textAlign = "center";
-  x.font = "bold 58px Arial, sans-serif";
-  x.fillText(project.title, W / 2, 100);
+  x.font = "bold 62px Arial, sans-serif";
+  x.fillText(project.title, W / 2, STRIP_H + 68);
 
-  /* accent rule under title */
+  /* rule */
   x.fillStyle = accent;
-  x.fillRect(W / 2 - 40, 115, 80, 3);
+  x.fillRect(W / 2 - 44, STRIP_H + 80, 88, 3);
 
-  /* stack chips */
-  x.font = "bold 14px Arial, sans-serif";
-  let cx = 20;
+  /* ── stack chips ── */
+  x.font = "bold 16px Arial, sans-serif";
+  const chipH = 30, chipR = 7;
+  const totalChipW = project.stack.slice(0, 4).reduce((sum, s) => {
+    return sum + x.measureText(s.name).width + 26 + 10;
+  }, -10);
+  let chipX = (W - totalChipW) / 2;
   for (const s of project.stack.slice(0, 4)) {
-    const cw = x.measureText(s.name).width + 22;
-    rR(x, cx, 130, cw, 28, 5);
-    x.fillStyle = "rgba(255,255,255,0.12)";
-    x.fill();
+    const cw = x.measureText(s.name).width + 26;
+    rR(x, chipX, STRIP_H + 94, cw, chipH, chipR);
+    x.fillStyle = "rgba(255,255,255,0.10)"; x.fill();
+    x.strokeStyle = accent + "66"; x.lineWidth = 1; x.stroke();
     x.fillStyle = accent;
     x.textAlign = "center";
-    x.fillText(s.name, cx + cw / 2, 149);
-    cx += cw + 10;
+    x.fillText(s.name, chipX + cw / 2, STRIP_H + 94 + chipH / 2 + 6);
+    chipX += cw + 10;
   }
 
-  /* description word-wrap */
-  x.fillStyle = "rgba(255,255,255,0.68)";
-  x.font = "19px Arial, sans-serif";
+  /* ── description ── */
+  x.fillStyle = "rgba(255,255,255,0.70)";
+  x.font = "20px Arial, sans-serif";
   x.textAlign = "left";
   const words = project.description.split(" ");
-  let line = "", ly = 210;
+  let line = "", ly = STRIP_H + 162;
   for (const w of words) {
     const test = line ? line + " " + w : w;
-    if (x.measureText(test).width > W - 50) {
-      if (ly < 440) x.fillText(line, 25, ly);
-      line = w; ly += 30;
+    if (x.measureText(test).width > W - 56) {
+      if (ly < 490) x.fillText(line, 28, ly);
+      line = w; ly += 32;
     } else { line = test; }
   }
-  if (ly < 440 && line) x.fillText(line, 25, ly);
+  if (ly < 490 && line) x.fillText(line, 28, ly);
 
-  /* year chip */
-  x.fillStyle = "rgba(255,255,255,0.07)";
-  rR(x, 25, H - 90, 70, 28, 6);
-  x.fill();
-  x.fillStyle = "rgba(255,255,255,0.40)";
-  x.font = "13px Arial, sans-serif";
-  x.textAlign = "center";
-  x.fillText(project.year, 60, H - 70);
-
-  /* status chip */
+  /* ── meta row (year + status) ── */
   const statusColors: Record<string, string> = { live: "#3ecf6a", dev: "#f59e0b", complete: "#4488ff" };
   const sc = statusColors[project.status] ?? accent;
-  x.fillStyle = sc + "33";
-  rR(x, 110, H - 90, 100, 28, 6);
-  x.fill();
+  x.fillStyle = "rgba(255,255,255,0.30)";
+  x.font = "14px Arial, sans-serif";
+  x.textAlign = "left";
+  x.fillText(project.year, 28, 524);
+
+  rR(x, 80, 506, 104, 28, 7);
+  x.fillStyle = sc + "25"; x.fill();
+  x.strokeStyle = sc + "77"; x.lineWidth = 1; x.stroke();
   x.fillStyle = sc;
   x.font = "bold 13px Arial, sans-serif";
   x.textAlign = "center";
-  x.fillText(project.status.toUpperCase(), 160, H - 70);
+  x.fillText(project.status.toUpperCase(), 132, 525);
 
-  /* drive-in prompt */
+  /* ── DRIVE IN button ── */
+  const btnX = 24, btnY = 556, btnW = W - 48, btnH = 80, btnR = 14;
+  rR(x, btnX, btnY, btnW, btnH, btnR);
+  x.fillStyle = accent + "22"; x.fill();
+  x.strokeStyle = accent; x.lineWidth = 2; x.stroke();
   x.fillStyle = accent;
-  x.font = "bold 20px Arial, sans-serif";
+  x.font = "bold 30px Arial, sans-serif";
   x.textAlign = "center";
-  x.fillText("▶  DRIVE IN TO EXPLORE", W / 2, H - 28);
+  x.fillText("▶  DRIVE IN TO EXPLORE", W / 2, btnY + btnH / 2 + 11);
+
+  /* bottom accent bar */
+  x.fillStyle = accent;
+  x.fillRect(0, H - 6, W, 6);
 
   return new THREE.CanvasTexture(cv);
 }
 
+/* ── Building component ──────────────────────────────────────────── */
 function Building({
-  project, pos, rotY, accent, base, carRef, onEnter,
+  project, cfg, accent, base, carRef, onEnter,
 }: {
   project: Project;
-  pos: [number, number, number];
-  rotY: number;
+  cfg: BuildingConfig;
   accent: string;
   base: string;
   carRef: React.RefObject<THREE.Group>;
-  onEnter: (p: Project) => void;
+  onEnter: (p: Project, teleport: [number, number]) => void;
 }) {
   const triggered = useRef(false);
   const texture   = useMemo(() => makeTexture(project, accent, base), []);
 
+  /* teleport world pos = 3.5 units in front of door in local → world */
+  const teleportX = cfg.pos[0] + (-(BLDG_D / 2 + 3.5)) * cfg.sRY;
+  const teleportZ = cfg.pos[2] + (-(BLDG_D / 2 + 3.5)) * cfg.cRY;
+
   useFrame(() => {
     if (!carRef.current) return;
     const c = carRef.current.position;
-    const dx = c.x - pos[0], dz = c.z - pos[2];
-    if (Math.sqrt(dx * dx + dz * dz) < TRIGGER) {
-      if (!triggered.current) { triggered.current = true; onEnter(project); }
+    const dx = c.x - cfg.pos[0], dz = c.z - cfg.pos[2];
+    /* transform to building-local 2D */
+    const lx = dx * cfg.cRY - dz * cfg.sRY;
+    const lz = dx * cfg.sRY + dz * cfg.cRY;
+
+    /* trigger only when car has driven through the door into the interior */
+    const inside =
+      Math.abs(lx) < DOOR_W / 2 + 0.6 &&
+      lz > -(BLDG_D / 2 - 1.2) &&
+      lz < BLDG_D / 2;
+
+    if (inside) {
+      if (!triggered.current) {
+        triggered.current = true;
+        onEnter(project, [teleportX, teleportZ]);
+      }
     } else {
       triggered.current = false;
     }
   });
 
-  const SW = (BW - DW) / 2;  // side column width
-  const HH = BH / 2;
+  const SW = (BLDG_W - DOOR_W) / 2;
+  const HH = BLDG_H / 2;
+  const { pos, rotY } = cfg;
 
   return (
     <group position={pos} rotation={[0, rotY, 0]}>
-      {/* left column — full depth */}
-      <mesh position={[-(DW / 2 + SW / 2), HH, 0]} castShadow receiveShadow>
-        <boxGeometry args={[SW, BH, BD]} />
+      {/* left column */}
+      <mesh position={[-(DOOR_W / 2 + SW / 2), HH, 0]} castShadow receiveShadow>
+        <boxGeometry args={[SW, BLDG_H, BLDG_D]} />
         <meshStandardMaterial color={base} roughness={0.7} metalness={0.08} />
       </mesh>
 
-      {/* right column — full depth */}
-      <mesh position={[DW / 2 + SW / 2, HH, 0]} castShadow receiveShadow>
-        <boxGeometry args={[SW, BH, BD]} />
+      {/* right column */}
+      <mesh position={[DOOR_W / 2 + SW / 2, HH, 0]} castShadow receiveShadow>
+        <boxGeometry args={[SW, BLDG_H, BLDG_D]} />
         <meshStandardMaterial color={base} roughness={0.7} metalness={0.08} />
       </mesh>
 
-      {/* lintel: front top piece above door */}
-      <mesh position={[0, DH + (BH - DH) / 2, -(BD / 2 - WT / 2)]} castShadow>
-        <boxGeometry args={[BW, BH - DH, WT]} />
-        <meshStandardMaterial color={base} roughness={0.7} metalness={0.08} />
-      </mesh>
-
-      {/* back wall */}
-      <mesh position={[0, HH, BD / 2 - WT / 2]}>
-        <boxGeometry args={[BW, BH, WT]} />
+      {/* lintel above door */}
+      <mesh position={[0, DOOR_H + (BLDG_H - DOOR_H) / 2, -(BLDG_D / 2 - BLDG_WT / 2)]} castShadow>
+        <boxGeometry args={[BLDG_W, BLDG_H - DOOR_H, BLDG_WT]} />
         <meshStandardMaterial color={base} roughness={0.7} />
       </mesh>
 
-      {/* roof slab */}
-      <mesh position={[0, BH + 0.3, 0]} castShadow>
-        <boxGeometry args={[BW + 0.8, 0.55, BD + 0.8]} />
-        <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.55} roughness={0.4} />
+      {/* back wall */}
+      <mesh position={[0, HH, BLDG_D / 2 - BLDG_WT / 2]}>
+        <boxGeometry args={[BLDG_W, BLDG_H, BLDG_WT]} />
+        <meshStandardMaterial color={base} roughness={0.7} />
       </mesh>
 
-      {/* neon roof edge */}
-      <mesh position={[0, BH + 0.62, 0]}>
-        <boxGeometry args={[BW + 0.8, 0.08, BD + 0.8]} />
+      {/* roof */}
+      <mesh position={[0, BLDG_H + 0.3, 0]} castShadow>
+        <boxGeometry args={[BLDG_W + 0.8, 0.55, BLDG_D + 0.8]} />
+        <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.55} roughness={0.4} />
+      </mesh>
+      <mesh position={[0, BLDG_H + 0.63, 0]}>
+        <boxGeometry args={[BLDG_W + 0.8, 0.08, BLDG_D + 0.8]} />
         <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={5} />
       </mesh>
 
-      {/* door-frame neon strips */}
-      {([-DW / 2, DW / 2] as number[]).map((sx, i) => (
-        <mesh key={i} position={[sx, DH / 2, -(BD / 2)]} castShadow>
-          <boxGeometry args={[0.1, DH, 0.15]} />
+      {/* door-frame neon strips — placed in front of the sign plane */}
+      {([-DOOR_W / 2, DOOR_W / 2] as number[]).map((sx, i) => (
+        <mesh key={i} position={[sx, DOOR_H / 2, -(BLDG_D / 2 + 0.08)]} castShadow>
+          <boxGeometry args={[0.12, DOOR_H, 0.18]} />
           <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={4} />
         </mesh>
       ))}
-      <mesh position={[0, DH, -(BD / 2)]}>
-        <boxGeometry args={[DW, 0.1, 0.15]} />
+      <mesh position={[0, DOOR_H, -(BLDG_D / 2 + 0.08)]}>
+        <boxGeometry args={[DOOR_W, 0.12, 0.18]} />
         <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={4} />
       </mesh>
 
-      {/* sign billboard — always faces camera regardless of building rotation */}
+      {/* sign — fixed to front face, rotation [0,PI,0] faces outward;
+           canvas is pre-flipped to compensate for the UV mirror */}
       {texture && (
-        <Billboard position={[0, HH, -(BD / 2 + 0.3)]}>
-          <mesh>
-            <planeGeometry args={[BW * 0.88, BH * 0.9]} />
-            <meshBasicMaterial map={texture} transparent side={THREE.FrontSide} />
-          </mesh>
-        </Billboard>
+        <mesh position={[0, HH, -(BLDG_D / 2 + 0.01)]} rotation={[0, Math.PI, 0]}>
+          <planeGeometry args={[BLDG_W, BLDG_H]} />
+          <meshBasicMaterial map={texture} transparent={false} />
+        </mesh>
       )}
 
       {/* door glow */}
-      <pointLight position={[0, DH * 0.55, -(BD / 2 + 1.2)]} color={accent} intensity={8} distance={14} decay={2} />
+      <pointLight position={[0, DOOR_H * 0.55, -(BLDG_D / 2 + 1.5)]} color={accent} intensity={9} distance={16} decay={2} />
     </group>
   );
 }
@@ -221,7 +415,7 @@ export function ProjectBuildings({
   onEnter,
 }: {
   carRef: React.RefObject<THREE.Group>;
-  onEnter: (p: Project) => void;
+  onEnter: (p: Project, tp: [number, number]) => void;
 }) {
   return (
     <>
@@ -229,8 +423,7 @@ export function ProjectBuildings({
         <Building
           key={p.id}
           project={p}
-          pos={CONFIGS[i].pos}
-          rotY={CONFIGS[i].rotY}
+          cfg={BLDG_CONFIGS[i]}
           accent={ACCENTS[i]}
           base={BASES[i]}
           carRef={carRef}
