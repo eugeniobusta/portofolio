@@ -26,7 +26,6 @@ const BOOST_MAX   = 90;
 const STEER       = 2.6;
 const SMOKE_N     = 80;
 const BOOST_N     = 70;
-const DRIFT_N     = 200;
 
 function buildGround() {
   const g = new THREE.PlaneGeometry(WORLD, WORLD, 60, 60);
@@ -231,21 +230,26 @@ function Smoke({
     /* spawn a puff whenever moving */
     timer.current -= dt;
     if (Math.abs(spd) > 0.4 && timer.current <= 0) {
-      timer.current = 0.06;
+      timer.current = 0.045;
       const p = puffs.current.find(p => !p.on);
       if (p) {
-        /* exhaust tip in world space — accounts for 0.88 inner scale */
-        const local = new THREE.Vector3(-0.38 * 0.88, 0.18 * 0.88, -1.16 * 0.88);
+        /* spawn across the rear of the car, low to the ground */
+        const local = new THREE.Vector3(
+          (Math.random() - 0.5) * 0.9,
+          0.08 + Math.random() * 0.10,
+          -1.0 * 0.88,
+        );
         local.applyMatrix4(car.matrixWorld);
         p.pos.copy(local);
-        /* drift up and slightly sideways */
+        /* push backward along car heading so it trails behind */
+        const sY = Math.sin(car.rotation.y), cY = Math.cos(car.rotation.y);
         p.vel.set(
-          (Math.random() - 0.5) * 0.25,
-          0.55 + Math.random() * 0.45,
-          (Math.random() - 0.5) * 0.25
+          -sY * (Math.abs(spd) * 0.20) + (Math.random() - 0.5) * 0.5,
+          0.25 + Math.random() * 0.35,
+          -cY * (Math.abs(spd) * 0.20) + (Math.random() - 0.5) * 0.5,
         );
         p.life = 0;
-        p.max  = 2.5 + Math.random() * 1.5;   // 2.5 – 4.0 s lifetime
+        p.max  = 2.5 + Math.random() * 1.5;
         p.on   = true;
       }
     }
@@ -285,12 +289,14 @@ function Smoke({
   );
 }
 
-/* ─── Boost trail (neon green jet behind car) ────────────────── */
+/* ─── Boost trail — Rocket League style cones + particles ────── */
 function BoostTrail({
   carRef, speedRef, boostRef,
 }: { carRef: React.RefObject<THREE.Group>; speedRef: React.RefObject<number>; boostRef: React.RefObject<boolean> }) {
-  const mesh  = useRef<THREE.InstancedMesh>(null!);
-  const puffs = useRef<Puff[]>(
+  const mesh     = useRef<THREE.InstancedMesh>(null!);
+  const cone1Ref = useRef<THREE.Mesh>(null!);
+  const cone2Ref = useRef<THREE.Mesh>(null!);
+  const puffs    = useRef<Puff[]>(
     Array.from({ length: BOOST_N }, () => ({
       pos: new THREE.Vector3(), vel: new THREE.Vector3(),
       life: 0, max: 1, on: false,
@@ -304,125 +310,104 @@ function BoostTrail({
   useFrame((_, delta) => {
     const dt  = Math.min(delta, 0.05);
     const car = carRef.current;
-    if (!car || !mesh.current) return;
+    if (!car) return;
 
-    if (boostRef.current) {
-      timer.current -= dt;
-      if (timer.current <= 0) {
-        timer.current = 0.025;
-        for (let k = 0; k < 3; k++) {
-          const p = puffs.current.find(p => !p.on);
-          if (!p) break;
-          const ox = (Math.random() - 0.5) * 0.9;
-          const local = new THREE.Vector3(ox * 0.88, 0.14 * 0.88, -1.1 * 0.88);
-          local.applyMatrix4(car.matrixWorld);
-          p.pos.copy(local);
-          const sY = Math.sin(car.rotation.y), cY = Math.cos(car.rotation.y);
-          const spd = Math.abs(speedRef.current ?? 0);
-          p.vel.set(
-            -sY * (spd * 0.45 + 5) + (Math.random() - 0.5) * 2.5,
-            (Math.random() - 0.5) * 0.5 + 0.08,
-            -cY * (spd * 0.45 + 5) + (Math.random() - 0.5) * 2.5,
-          );
-          p.life = 0;
-          p.max  = 0.22 + Math.random() * 0.22;
-          p.on   = true;
-        }
+    const on  = boostRef.current;
+    const p   = car.position;
+    const yaw = car.rotation.y;
+    const sY  = Math.sin(yaw), cY = Math.cos(yaw);
+
+    /* ── position cones — apex at car rear, opening backward ── */
+    if (cone1Ref.current && cone2Ref.current) {
+      cone1Ref.current.visible = on;
+      cone2Ref.current.visible = on;
+      if (on) {
+        // ConeGeometry default: apex at +Y, base at -Y.
+        // rotation(π/2, yaw, 0): apex → car-forward (+Z world), base → car-backward (-Z world).
+        // Center offset = 1.0 (rear of body) + half-height behind car.
+        const d1 = 1.0 + 1.8, d2 = 1.0 + 2.6;
+        cone1Ref.current.position.set(p.x - sY * d1, p.y + 0.15, p.z - cY * d1);
+        cone1Ref.current.rotation.set(Math.PI / 2, yaw, 0);
+        cone2Ref.current.position.set(p.x - sY * d2, p.y + 0.15, p.z - cY * d2);
+        cone2Ref.current.rotation.set(Math.PI / 2, yaw, 0);
       }
     }
 
-    let idx = 0;
-    for (const p of puffs.current) {
-      if (!p.on) continue;
-      p.life += dt;
-      if (p.life >= p.max) { p.on = false; continue; }
-      p.pos.addScaledVector(p.vel, dt);
-      p.vel.multiplyScalar(0.86);
-      const t  = p.life / p.max;
-      const sz = 0.05 + t * 0.20;
-      M.compose(p.pos, Q.identity(), S.set(sz, sz, sz));
-      mesh.current.setMatrixAt(idx++, M);
+    /* ── particle burst ── */
+    if (mesh.current) {
+      if (on) {
+        timer.current -= dt;
+        if (timer.current <= 0) {
+          timer.current = 0.020;
+          for (let k = 0; k < 4; k++) {
+            const pt = puffs.current.find(p => !p.on);
+            if (!pt) break;
+            const ox = (Math.random() - 0.5) * 1.0;
+            const local = new THREE.Vector3(ox * 0.88, 0.14 * 0.88, -1.05 * 0.88);
+            local.applyMatrix4(car.matrixWorld);
+            pt.pos.copy(local);
+            const spd = Math.abs(speedRef.current ?? 0);
+            pt.vel.set(
+              -sY * (spd * 0.5 + 7) + (Math.random() - 0.5) * 3.5,
+              (Math.random() - 0.5) * 0.6 + 0.1,
+              -cY * (spd * 0.5 + 7) + (Math.random() - 0.5) * 3.5,
+            );
+            pt.life = 0;
+            pt.max  = 0.16 + Math.random() * 0.18;
+            pt.on   = true;
+          }
+        }
+      }
+
+      let idx = 0;
+      for (const pt of puffs.current) {
+        if (!pt.on) continue;
+        pt.life += dt;
+        if (pt.life >= pt.max) { pt.on = false; continue; }
+        pt.pos.addScaledVector(pt.vel, dt);
+        pt.vel.multiplyScalar(0.83);
+        const t  = pt.life / pt.max;
+        const sz = 0.04 + t * 0.30;
+        M.compose(pt.pos, Q.identity(), S.set(sz, sz, sz));
+        mesh.current.setMatrixAt(idx++, M);
+      }
+      for (let i = idx; i < BOOST_N; i++) {
+        M.compose(new THREE.Vector3(0, -9999, 0), Q.identity(), S.set(0.001, 0.001, 0.001));
+        mesh.current.setMatrixAt(i, M);
+      }
+      mesh.current.instanceMatrix.needsUpdate = true;
     }
-    for (let i = idx; i < BOOST_N; i++) {
-      M.compose(new THREE.Vector3(0, -9999, 0), Q.identity(), S.set(0.001, 0.001, 0.001));
-      mesh.current.setMatrixAt(i, M);
-    }
-    mesh.current.instanceMatrix.needsUpdate = true;
   });
 
   return (
-    <instancedMesh ref={mesh} args={[undefined, undefined, BOOST_N]}>
-      <sphereGeometry args={[1, 6, 6]} />
-      <meshStandardMaterial
-        color="#3ecf6a"
-        emissive="#3ecf6a"
-        emissiveIntensity={3.5}
-        transparent
-        opacity={0.92}
-        depthWrite={false}
-      />
-    </instancedMesh>
-  );
-}
+    <>
+      {/* spark particles */}
+      <instancedMesh ref={mesh} args={[undefined, undefined, BOOST_N]}>
+        <sphereGeometry args={[1, 6, 6]} />
+        <meshStandardMaterial
+          color="#3ecf6a" emissive="#3ecf6a" emissiveIntensity={5}
+          transparent opacity={0.95} depthWrite={false}
+        />
+      </instancedMesh>
 
-/* ─── Drift marks (tire stamps on ground when boosting) ─────── */
-function DriftMarks({
-  carPosRef, carYawRef, speedRef, boostRef,
-}: {
-  carPosRef: React.RefObject<THREE.Vector3>;
-  carYawRef: React.RefObject<number>;
-  speedRef:  React.RefObject<number>;
-  boostRef:  React.RefObject<boolean>;
-}) {
-  const meshRef = useRef<THREE.InstancedMesh>(null!);
-  const head    = useRef(0);
-  const timer   = useRef(0);
-  const M = useMemo(() => new THREE.Matrix4(), []);
-  const Q = useMemo(() => new THREE.Quaternion(), []);
-  const S = useMemo(() => new THREE.Vector3(), []);
+      {/* inner bright core — tight cone */}
+      <mesh ref={cone1Ref} visible={false}>
+        <coneGeometry args={[0.52, 3.6, 12, 1, true]} />
+        <meshStandardMaterial
+          color="#3ecf6a" emissive="#3ecf6a" emissiveIntensity={9}
+          transparent opacity={0.82} depthWrite={false} side={THREE.DoubleSide}
+        />
+      </mesh>
 
-  useEffect(() => {
-    if (!meshRef.current) return;
-    const hidden = new THREE.Matrix4().compose(
-      new THREE.Vector3(0, -999, 0), new THREE.Quaternion(), new THREE.Vector3(0.001, 0.001, 0.001),
-    );
-    for (let i = 0; i < DRIFT_N; i++) meshRef.current.setMatrixAt(i, hidden);
-    meshRef.current.instanceMatrix.needsUpdate = true;
-  }, []);
-
-  useFrame((_, delta) => {
-    const dt = Math.min(delta, 0.05);
-    if (!boostRef.current || Math.abs(speedRef.current) < 8 || !meshRef.current) return;
-    timer.current -= dt;
-    if (timer.current > 0) return;
-    timer.current = 0.055;
-
-    const pos  = carPosRef.current;
-    const yaw  = carYawRef.current;
-    const gnd  = sampleH(pos.x, pos.z);
-    const SIDE = 0.56;
-    const px   = Math.cos(yaw) * SIDE;
-    const pz   = -Math.sin(yaw) * SIDE;
-
-    for (let side = -1; side <= 1; side += 2) {
-      const i = head.current;
-      head.current = (head.current + 1) % DRIFT_N;
-      Q.setFromEuler(new THREE.Euler(0, yaw, 0));
-      M.compose(
-        new THREE.Vector3(pos.x + side * px, gnd + 0.012, pos.z + side * pz),
-        Q,
-        S.set(0.14, 0.035, 0.58),
-      );
-      meshRef.current.setMatrixAt(i, M);
-    }
-    meshRef.current.instanceMatrix.needsUpdate = true;
-  });
-
-  return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, DRIFT_N]} receiveShadow>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="#0a0a0a" roughness={1} />
-    </instancedMesh>
+      {/* outer soft glow — wide cone */}
+      <mesh ref={cone2Ref} visible={false}>
+        <coneGeometry args={[1.25, 5.2, 12, 1, true]} />
+        <meshStandardMaterial
+          color="#3ecf6a" emissive="#3ecf6a" emissiveIntensity={3}
+          transparent opacity={0.32} depthWrite={false} side={THREE.DoubleSide}
+        />
+      </mesh>
+    </>
   );
 }
 
@@ -578,7 +563,6 @@ function Scene() {
       <Smoke carRef={carRef} speedRef={speedRef} />
       <Headlights carRef={carRef} />
       <BoostTrail carRef={carRef} speedRef={speedRef} boostRef={boostRef} />
-      <DriftMarks carPosRef={carPos} carYawRef={carYaw} speedRef={speedRef} boostRef={boostRef} />
       <BoostLight carRef={carRef} boostRef={boostRef} />
 
       <OrbitControls
