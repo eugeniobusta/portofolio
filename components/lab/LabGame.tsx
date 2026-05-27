@@ -63,20 +63,20 @@ function useKeys() {
 function Roads() {
   return (
     <>
-      {/* N-S spine at x=0 — runs full world length */}
-      <mesh position={[0, 0.06, 0]} receiveShadow>
-        <boxGeometry args={[8, 0.12, WORLD]} />
-        <meshStandardMaterial color="#ccc4ae" roughness={0.92} />
+      {/* N-S spine — flat plane with polygonOffset to sit cleanly above terrain */}
+      <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[8, WORLD]} />
+        <meshStandardMaterial color="#ccc4ae" roughness={0.93} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
       </mesh>
-      {/* E-W connector at z=15 — side buildings row */}
-      <mesh position={[0, 0.06, 15]} receiveShadow>
-        <boxGeometry args={[WORLD - 10, 0.12, 8]} />
-        <meshStandardMaterial color="#ccc4ae" roughness={0.92} />
+      {/* E-W connector at z=15 */}
+      <mesh position={[0, 0.005, 15]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[WORLD - 10, 8]} />
+        <meshStandardMaterial color="#ccc4ae" roughness={0.93} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
       </mesh>
-      {/* E-W connector at z=35 — second row */}
-      <mesh position={[0, 0.06, 35]} receiveShadow>
-        <boxGeometry args={[WORLD - 10, 0.12, 8]} />
-        <meshStandardMaterial color="#ccc4ae" roughness={0.92} />
+      {/* E-W connector at z=35 */}
+      <mesh position={[0, 0.005, 35]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[WORLD - 10, 8]} />
+        <meshStandardMaterial color="#ccc4ae" roughness={0.93} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
       </mesh>
     </>
   );
