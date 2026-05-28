@@ -1319,6 +1319,114 @@ function Scene({
 }
 
 /* ─── HUD ──────────────────────────────────────────────────────── */
+/* ─── Lab tutorial (shown once per browser) ────────────────────── */
+function LabTutorial({ onDismiss }: { onDismiss: () => void }) {
+  useEffect(() => {
+    const handler = () => onDismiss();
+    window.addEventListener("keydown", handler, { once: true });
+    window.addEventListener("pointerdown", handler, { once: true });
+    return () => {
+      window.removeEventListener("keydown", handler);
+      window.removeEventListener("pointerdown", handler);
+    };
+  }, [onDismiss]);
+
+  const KEY_STYLE: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    minWidth: 28, height: 26, padding: "0 6px",
+    borderRadius: 6, fontSize: 12, fontFamily: "monospace", fontWeight: 700,
+    background: "rgba(255,255,255,0.12)",
+    border: "1px solid rgba(255,255,255,0.28)",
+    color: "#ffffff",
+  };
+
+  return (
+    <>
+      <style>{`
+        @keyframes tutFadeIn {
+          from { opacity: 0; transform: scale(0.96) translateY(8px); }
+          to   { opacity: 1; transform: scale(1)    translateY(0);    }
+        }
+      `}</style>
+      <div style={{
+        position: "absolute", inset: 0, zIndex: 40,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: "rgba(0,0,0,0.42)",
+        backdropFilter: "blur(4px)",
+      }}>
+        <div style={{
+          width: "min(480px, 92vw)",
+          background: "rgba(15,18,20,0.88)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: 20,
+          padding: "36px 36px 28px",
+          color: "#ffffff",
+          animation: "tutFadeIn 0.35s cubic-bezier(0.22,1,0.36,1) forwards",
+          pointerEvents: "none",
+        }}>
+          {/* header */}
+          <div style={{ marginBottom: 6 }}>
+            <span style={{
+              fontSize: 11, fontFamily: "monospace", letterSpacing: "0.12em",
+              textTransform: "uppercase", color: "#3ecf6a", fontWeight: 700,
+            }}>The Lab</span>
+          </div>
+          <h2 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 8px", lineHeight: 1.2 }}>
+            Welcome. Drive around.
+          </h2>
+          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.55)", margin: "0 0 28px", lineHeight: 1.6 }}>
+            This is an interactive 3D world. Each building is one of my projects.
+            Drive up to a door and go inside to see it.
+          </p>
+
+          {/* controls grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 20px", marginBottom: 28 }}>
+            {[
+              { keys: ["W","A","S","D"],       label: "Drive"        },
+              { keys: ["SPACE", "+", "W"],      label: "Boost"        },
+              { keys: ["Drag"],                 label: "Orbit camera" },
+              { keys: ["Scroll"],               label: "Zoom"         },
+              { keys: ["ESC"],                  label: "Exit the lab" },
+            ].map(({ keys, label }) => (
+              <div key={label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                  {keys.map((k, i) => (
+                    k === "+" ? (
+                      <span key={i} style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", alignSelf: "center" }}>+</span>
+                    ) : (
+                      <span key={i} style={KEY_STYLE}>{k}</span>
+                    )
+                  ))}
+                </div>
+                <span style={{ fontSize: 13, color: "rgba(255,255,255,0.55)" }}>{label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* secret hint */}
+          <div style={{
+            borderTop: "1px solid rgba(255,255,255,0.08)",
+            paddingTop: 16, marginBottom: 20,
+            fontSize: 12, color: "rgba(255,255,255,0.35)",
+            fontFamily: "monospace",
+          }}>
+            hint: there's something hidden in the corner of the map.
+          </div>
+
+          {/* dismiss */}
+          <div style={{
+            textAlign: "center", fontSize: 12,
+            color: "rgba(255,255,255,0.35)", fontFamily: "monospace",
+            letterSpacing: "0.04em",
+          }}>
+            press any key or click to start
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function HUD() {
   return (
     <div className="absolute bottom-5 left-1/2 -translate-x-1/2 pointer-events-none select-none">
@@ -1489,11 +1597,14 @@ function ProjectPopup({ project, onClose }: { project: Project; onClose: () => v
 }
 
 /* ─── Entry ────────────────────────────────────────────────────── */
+const TUTORIAL_KEY = "lab-tutorial-seen";
+
 export default function LabGame() {
   const router = useRouter();
   const [ready, setReady]                 = useState(false);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [isFlipped, setIsFlipped]         = useState(false);
+  const [showTutorial, setShowTutorial]   = useState(false);
   /* teleportRef is written by LabGame (on close) and read by Scene's useFrame */
   const teleportRef    = useRef<[number, number] | null>(null);
   const activeTeleport = useRef<[number, number] | null>(null);
@@ -1517,7 +1628,11 @@ export default function LabGame() {
     rightCarRef.current = true;
     setIsFlipped(false);
   }, []);
-  const handleAboutEnter = useCallback(() => setDogEntering(true), []);
+  const handleAboutEnter  = useCallback(() => setDogEntering(true), []);
+  const handleTutorialDismiss = useCallback(() => {
+    setShowTutorial(false);
+    localStorage.setItem(TUTORIAL_KEY, "1");
+  }, []);
 
   useEffect(() => {
     if (dogEntering) {
@@ -1526,7 +1641,10 @@ export default function LabGame() {
     }
   }, [dogEntering, router]);
 
-  useEffect(() => setReady(true), []);
+  useEffect(() => {
+    setReady(true);
+    if (!localStorage.getItem(TUTORIAL_KEY)) setShowTutorial(true);
+  }, []);
   if (!ready) return null;
 
   return (
@@ -1547,6 +1665,7 @@ export default function LabGame() {
         />
       </Canvas>
       <HUD />
+      {showTutorial && <LabTutorial onDismiss={handleTutorialDismiss} />}
 
       {/* ambient orange vignette — opacity driven directly by DogHouse useFrame (no re-renders) */}
       <div

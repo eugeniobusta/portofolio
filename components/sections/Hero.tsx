@@ -469,22 +469,14 @@ export default function Hero({ onGameOpen, isCollapsing }: HeroProps) {
           style={{ background: "var(--surface)" }}
         >
           {[
-            { label: "Based in", value: "Dublin, Ireland", sub: null,             iso: "ie" },
-            { label: "From",     value: "Spain",           sub: null,             iso: "es" },
-            { label: "Studying", value: "Computer Science",sub: "2nd year · DCU", iso: null },
-          ].map(({ label, value, sub, iso }, i) => (
+            { label: "Based in",  value: "Dublin, Ireland", sub: null,             flag: "🇮🇪" },
+            { label: "From",      value: "Spain",           sub: null,             flag: "🇪🇸" },
+            { label: "Studying",  value: "Computer Science",sub: "2nd year · DCU", flag: null  },
+          ].map(({ label, value, sub, flag }, i) => (
             <div key={label} className={`px-5 py-4 ${i < 2 ? "border-b border-frame" : ""}`}>
               <div className="text-[10px] text-muted/55 uppercase tracking-widest font-mono mb-1">{label}</div>
-              <div className="text-sm text-ink font-medium flex items-center gap-2">
-                {iso && (
-                  <img
-                    src={`https://flagcdn.com/w20/${iso}.png`}
-                    width={18}
-                    height={13}
-                    alt={iso}
-                    style={{ borderRadius: 2, objectFit: "cover", display: "block", flexShrink: 0 }}
-                  />
-                )}
+              <div className="text-sm text-ink font-medium flex items-center gap-1.5">
+                {flag && <span>{flag}</span>}
                 {value}
               </div>
               {sub && <div className="text-xs text-muted mt-0.5 font-mono">{sub}</div>}
@@ -496,22 +488,16 @@ export default function Hero({ onGameOpen, isCollapsing }: HeroProps) {
             <div className="text-[10px] text-muted/55 uppercase tracking-widest font-mono mb-2.5">Languages</div>
             <div className="flex gap-1.5">
               {[
-                { code: "EN", iso: "gb" },
-                { code: "FR", iso: "fr" },
-                { code: "ES", iso: "es" },
-              ].map(({ code, iso }) => (
+                { code: "EN", flag: "🇬🇧" },
+                { code: "FR", flag: "🇫🇷" },
+                { code: "ES", flag: "🇪🇸" },
+              ].map(({ code, flag }) => (
                 <span
                   key={code}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono text-ink border border-frame"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono text-ink border border-frame"
                   style={{ background: "var(--paper)" }}
                 >
-                  <img
-                    src={`https://flagcdn.com/w20/${iso}.png`}
-                    width={16}
-                    height={11}
-                    alt={code}
-                    style={{ borderRadius: 2, objectFit: "cover", display: "block", flexShrink: 0 }}
-                  />
+                  <span className="text-sm">{flag}</span>
                   {code}
                 </span>
               ))}
