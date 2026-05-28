@@ -49,11 +49,11 @@ function Sun({ sp }: { sp: MotionValue<number> }) {
   const rawY     = useTransform(sp, [0, 1], [11, 73]);
   const y        = useSpring(rawY, { stiffness: 26, damping: 18 });
   const top      = useTransform(y, v => `${v}vh`);
-  const opacity  = useTransform(sp, [0, 0.52, 0.76, 0.90, 1], [1, 1, 0.68, 0.08, 0]);
-  const haloSize = useTransform(sp, [0, 0.75], [200, 350]);
+  const opacity  = useTransform(sp, [0, 0.42, 0.62, 0.76, 1], [1, 1, 0.55, 0.05, 0]);
+  const haloSize = useTransform(sp, [0, 0.65, 1], [200, 340, 340]);
   const haloPx   = useTransform(haloSize, v => `${v}px`);
-  // sun deepens to red/crimson as it sinks
-  const redTint  = useTransform(sp, [0.18, 0.68], [0, 0.72]);
+  // sun deepens to red/crimson as it sinks, pinned so it doesn't flip back
+  const redTint  = useTransform(sp, [0.18, 0.55, 1], [0, 0.72, 0.72]);
 
   return (
     <motion.div style={{
@@ -107,7 +107,7 @@ function Sun({ sp }: { sp: MotionValue<number> }) {
 
 /* ─── SUN WATER REFLECTION ───────────────────────────────────────── */
 function SunReflection({ sp }: { sp: MotionValue<number> }) {
-  const opacity = useTransform(sp, [0, 0.45, 0.82, 1], [0.5, 0.65, 0.2, 0]);
+  const opacity = useTransform(sp, [0, 0.38, 0.62, 1], [0.5, 0.65, 0, 0]);
   return (
     <motion.div style={{
       position: "absolute", bottom: "3%", left: "50%",
@@ -142,7 +142,7 @@ function Cloud({ sp, topPct, leftPct, speed, size = 1 }: {
 }) {
   const rawX = useTransform(sp, [0, 1], [0, -110 * speed]);
   const x    = useSpring(rawX, { stiffness: 20, damping: 18 });
-  const fade = useTransform(sp, [0.48, 0.75], [0.86, 0]);
+  const fade = useTransform(sp, [0.35, 0.55, 1], [0.86, 0, 0]);
   const W = 175 * size, H = 62 * size;
 
   return (
@@ -184,7 +184,7 @@ function Cloud({ sp, topPct, leftPct, speed, size = 1 }: {
 function Seagull({ top, left, scale = 1, delay = 0, sp }: {
   top: string; left: string; scale?: number; delay?: number; sp: MotionValue<number>;
 }) {
-  const fade = useTransform(sp, [0.42, 0.68], [0.46, 0]);
+  const fade = useTransform(sp, [0.30, 0.50, 1], [0.46, 0, 0]);
   return (
     <motion.svg viewBox="0 0 40 20"
       style={{
@@ -211,7 +211,7 @@ function Seagull({ top, left, scale = 1, delay = 0, sp }: {
 function WaveLayer({ sp }: { sp: MotionValue<number> }) {
   const rise = useTransform(sp, [0.35, 1], ["0%", "-9%"]);
   // wave color deepens to dark at night
-  const waveDeep = useTransform(sp, [0.60, 0.92], [0, 1]);
+  const waveDeep = useTransform(sp, [0.50, 0.72, 1], [0, 1, 1]);
 
   return (
     <motion.div style={{
@@ -226,7 +226,7 @@ function WaveLayer({ sp }: { sp: MotionValue<number> }) {
       {/* night water darkening */}
       <motion.div style={{
         position: "absolute", inset: 0, opacity: waveDeep,
-        background: "linear-gradient(180deg, transparent 0%, rgba(4,6,22,0.55) 35%, rgba(3,5,18,0.72) 100%)",
+        background: "linear-gradient(180deg, transparent 0%, rgba(3,5,20,0.72) 35%, rgba(2,4,16,0.92) 100%)",
       }} />
 
       {/* wave 1 */}
@@ -298,9 +298,11 @@ function Palm({ side }: { side: "left" | "right" }) {
 /* ─── DUSK LAYERS ────────────────────────────────────────────────── */
 /* Three-phase sky: golden hour → twilight purple → full night */
 function DuskLayers({ sp }: { sp: MotionValue<number> }) {
-  const goldenOp   = useTransform(sp, [0.12, 0.42, 0.68], [0, 1, 0]);
-  const twilightOp = useTransform(sp, [0.40, 0.68], [0, 1]);
-  const nightOp    = useTransform(sp, [0.63, 0.90], [0, 1]);
+  // All three transforms are pinned with an explicit [1] keyframe so Framer
+  // Motion never extrapolates them backwards as scroll approaches the page end.
+  const goldenOp   = useTransform(sp, [0.10, 0.38, 0.56, 1], [0, 1, 0, 0]);
+  const twilightOp = useTransform(sp, [0.36, 0.58, 1],        [0, 1, 1]);
+  const nightOp    = useTransform(sp, [0.52, 0.72, 1],        [0, 1, 1]);
 
   return (
     <>
@@ -314,10 +316,10 @@ function DuskLayers({ sp }: { sp: MotionValue<number> }) {
         position: "absolute", inset: 0, opacity: twilightOp, pointerEvents: "none", zIndex: 1,
         background: "linear-gradient(180deg, rgba(62,18,90,0.74) 0%, rgba(122,30,78,0.48) 30%, rgba(185,60,18,0.22) 62%, transparent 82%)",
       }} />
-      {/* full night — deep blue-black blanket */}
+      {/* full night — uniformly deep so the warm base can't bleed through */}
       <motion.div style={{
         position: "absolute", inset: 0, opacity: nightOp, pointerEvents: "none", zIndex: 1,
-        background: "linear-gradient(180deg, rgba(4,4,22,0.94) 0%, rgba(8,6,26,0.91) 44%, rgba(12,7,21,0.78) 78%, rgba(18,8,15,0.58) 100%)",
+        background: "linear-gradient(180deg, rgba(4,4,22,0.95) 0%, rgba(5,5,20,0.94) 40%, rgba(6,5,18,0.93) 75%, rgba(7,5,16,0.92) 100%)",
       }} />
     </>
   );
@@ -325,7 +327,7 @@ function DuskLayers({ sp }: { sp: MotionValue<number> }) {
 
 /* ─── STARS ──────────────────────────────────────────────────────── */
 function Stars({ sp }: { sp: MotionValue<number> }) {
-  const opacity = useTransform(sp, [0.60, 0.90], [0, 1]);
+  const opacity = useTransform(sp, [0.50, 0.72, 1], [0, 1, 1]);
   const dots = useMemo(() =>
     Array.from({ length: 32 }, (_, i) => ({
       x: (i * 137 % 94) + 3,
@@ -356,7 +358,7 @@ function Stars({ sp }: { sp: MotionValue<number> }) {
 
 /* ─── CITY LIGHTS ────────────────────────────────────────────────── */
 function CityLights({ sp }: { sp: MotionValue<number> }) {
-  const opacity = useTransform(sp, [0.56, 0.82], [0, 1]);
+  const opacity = useTransform(sp, [0.48, 0.68, 1], [0, 1, 1]);
 
   // Deterministic skyline SVG path
   const skylinePath = useMemo(() => {
@@ -444,7 +446,7 @@ function CityLights({ sp }: { sp: MotionValue<number> }) {
 
 /* ─── MOON ───────────────────────────────────────────────────────── */
 function Moon({ sp }: { sp: MotionValue<number> }) {
-  const opacity = useTransform(sp, [0.70, 0.90], [0, 1]);
+  const opacity = useTransform(sp, [0.60, 0.78, 1], [0, 1, 1]);
   return (
     <motion.div style={{
       position: "absolute", top: "8%", right: "12%",
