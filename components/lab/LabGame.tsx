@@ -27,6 +27,7 @@ const BOOST_FRIC  = 0.96;
 const MAX_SPD     = 48;
 const BOOST_MAX   = 90;
 const STEER       = 2.6;
+const GRAVITY     = -22;
 const SMOKE_N     = 80;
 const FIRE_N      = 160;
 const DARK_N      = 60;
@@ -670,10 +671,8 @@ function MountainRocks() {
 
 /* ─── Secret wobbly path to the corner ───────────────────────── */
 const SPATH_PTS: [number, number][] = [
-  [ 1,  -6], [ 5, -10], [ 2, -15], [ 8, -19],
-  [ 4, -23], [10, -27], [ 5, -31], [13, -35],
-  [ 8, -38], [17, -41], [27, -43], [36, -44],
-  [42, -44], [44, -43],
+  [ 2,  -2],
+  [44, -44],
 ];
 
 function SecretPath() {
@@ -709,10 +708,10 @@ function SecretPath() {
   return (
     <mesh geometry={geo} receiveShadow>
       <meshStandardMaterial
-        color="#b0a898"
+        color="#c8c4bc"
         roughness={0.97}
         transparent
-        opacity={0.60}
+        opacity={0.35}
         polygonOffset
         polygonOffsetFactor={-3}
         polygonOffsetUnits={-3}
@@ -732,63 +731,70 @@ function DogHouse({
   carPosRef: React.MutableRefObject<THREE.Vector3>;
   onEnter: () => void;
 }) {
-  const enteredRef = useRef(false);
+  const enteredRef  = useRef(false);
+  const glowRef     = useRef<THREE.PointLight>(null!);
 
   const signTex = useMemo(() => {
     if (typeof window === "undefined") return null;
-    const W = 480, H = 280;
+    const W = 640, H = 380;
     const c = document.createElement("canvas");
     c.width = W; c.height = H;
     const ctx = c.getContext("2d")!;
 
-    ctx.fillStyle = "#f0e8d5";
+    ctx.fillStyle = "#faf4e8";
     ctx.fillRect(0, 0, W, H);
 
     /* wood grain */
-    ctx.strokeStyle = "rgba(155,115,60,0.20)";
-    ctx.lineWidth = 1.2;
-    for (let y = 12; y < H; y += 17) {
+    ctx.strokeStyle = "rgba(145,105,50,0.18)";
+    ctx.lineWidth = 1.5;
+    for (let y = 14; y < H; y += 20) {
       ctx.beginPath();
-      ctx.moveTo(0, y + Math.sin(y * 0.4) * 2);
-      ctx.lineTo(W, y + Math.cos(y * 0.25) * 3);
+      ctx.moveTo(0, y + Math.sin(y * 0.35) * 2.5);
+      ctx.lineTo(W, y + Math.cos(y * 0.22) * 3.5);
       ctx.stroke();
     }
-
     ctx.strokeStyle = "#7a5a18";
-    ctx.lineWidth = 6;
-    ctx.strokeRect(3, 3, W - 6, H - 6);
+    ctx.lineWidth = 8;
+    ctx.strokeRect(4, 4, W - 8, H - 8);
 
     ctx.textAlign = "center";
-    ctx.fillStyle = "#2c1a06";
-    ctx.font = "italic bold 21px Georgia, serif";
-    ctx.fillText("Made it to the corner?", W / 2, 44);
+    ctx.fillStyle = "#1e0e02";
+    ctx.font = "italic bold 30px Georgia, serif";
+    ctx.fillText("You found the corner.", W / 2, 54);
 
-    ctx.fillStyle = "#4a3010";
-    ctx.font = "17px Georgia, serif";
-    ctx.fillText("That means you're curious about who I am —", W / 2, 82);
-    ctx.fillText("maybe ready to join my adventure,", W / 2, 108);
-    ctx.fillText("or invite me to yours.", W / 2, 132);
+    ctx.fillStyle = "#3a2408";
+    ctx.font = "22px Georgia, serif";
+    ctx.fillText("That means you're interested in", W / 2, 102);
+    ctx.fillText("who I am — and maybe joining", W / 2, 132);
+    ctx.fillText("my adventure, or inviting me to yours.", W / 2, 162);
 
     ctx.strokeStyle = "#c89030";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(52, 152); ctx.lineTo(W - 52, 152); ctx.stroke();
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(60, 186); ctx.lineTo(W - 60, 186); ctx.stroke();
 
     ctx.fillStyle = "#c0392b";
-    ctx.font = "bold 18px Georgia, serif";
-    ctx.fillText("Come in. Let's find out.", W / 2, 180);
+    ctx.font = "bold 24px Georgia, serif";
+    ctx.fillText("Come in. Let's find out.", W / 2, 224);
 
-    ctx.fillStyle = "#aaa";
-    ctx.font = "11px Arial, sans-serif";
-    ctx.fillText("↓  hidden page  ↓", W / 2, 215);
+    ctx.fillStyle = "#bbb";
+    ctx.font = "14px Arial, sans-serif";
+    ctx.fillText("→ hidden page →", W / 2, 268);
 
     return new THREE.CanvasTexture(c);
   }, []);
 
   useFrame(() => {
-    if (enteredRef.current) return;
     const dx = carPosRef.current.x - DOG_POS[0];
     const dz = carPosRef.current.z - DOG_POS[2];
-    if (dx * dx + dz * dz < DOG_TRIGGER_R * DOG_TRIGGER_R) {
+    const dist2 = dx * dx + dz * dz;
+
+    /* proximity glow: starts at dist 22, peaks at 0 */
+    if (glowRef.current) {
+      const t = Math.max(0, 1 - Math.sqrt(dist2) / 22);
+      glowRef.current.intensity = t * t * 18;
+    }
+
+    if (!enteredRef.current && dist2 < DOG_TRIGGER_R * DOG_TRIGGER_R) {
       enteredRef.current = true;
       onEnter();
     }
@@ -833,23 +839,154 @@ function DogHouse({
         <pointLight position={[0, 1.0, 0.5]} color="#ff9933" intensity={4} distance={8} decay={2} />
       </group>
 
-      {/* sign on stakes — rotation.y = -π/4 gives correct (non-mirrored) UV for approach from center */}
+      {/* proximity glow that swells as car approaches */}
+      <pointLight ref={glowRef} position={DOG_POS} color="#ff8822" distance={28} decay={1.4} intensity={0} />
+
+      {/* sign — group rotated so poles + board face toward center; rotation.y=-π/4 keeps UV correct */}
       {signTex && (
-        <group position={[37, 0, -37]}>
-          <mesh position={[-0.85, 1.25, 0]} rotation={[0.06, 0, 0]} castShadow>
-            <cylinderGeometry args={[0.045, 0.062, 2.5, 6]} />
-            <meshStandardMaterial color="#8b6820" roughness={0.90} />
+        <group position={[37, 0, -37]} rotation={[0, -Math.PI / 4, 0]}>
+          {/* left pole at x=-2.0, same local space as sign */}
+          <mesh position={[-2.0, 2.0, 0]} castShadow>
+            <cylinderGeometry args={[0.055, 0.072, 4.0, 7]} />
+            <meshStandardMaterial color="#8b6820" roughness={0.88} />
           </mesh>
-          <mesh position={[0.85, 1.25, 0]} rotation={[0.06, 0, 0]} castShadow>
-            <cylinderGeometry args={[0.045, 0.062, 2.5, 6]} />
-            <meshStandardMaterial color="#8b6820" roughness={0.90} />
+          {/* right pole */}
+          <mesh position={[2.0, 2.0, 0]} castShadow>
+            <cylinderGeometry args={[0.055, 0.072, 4.0, 7]} />
+            <meshStandardMaterial color="#8b6820" roughness={0.88} />
           </mesh>
-          <mesh position={[0, 2.7, 0]} rotation={[0, -Math.PI / 4, 0]} castShadow>
-            <planeGeometry args={[3.8, 2.2]} />
-            <meshStandardMaterial map={signTex} side={THREE.DoubleSide} roughness={0.58} />
+          {/* horizontal top bar */}
+          <mesh position={[0, 3.85, 0]} castShadow>
+            <boxGeometry args={[4.1, 0.10, 0.10]} />
+            <meshStandardMaterial color="#7a5818" roughness={0.85} />
+          </mesh>
+          {/* sign board centred on poles */}
+          <mesh position={[0, 2.5, 0]} castShadow>
+            <planeGeometry args={[4.0, 2.6]} />
+            <meshStandardMaterial map={signTex} side={THREE.DoubleSide} roughness={0.55} />
           </mesh>
         </group>
       )}
+    </>
+  );
+}
+
+/* ─── City life (right side) ─────────────────────────────────── */
+const PERSON_DEFS = [
+  { base: [20, 0,  5] as [number,number,number], r: 2.4, spd:  0.65, phase: 0.0, shirt: "#4488cc" },
+  { base: [28, 0, 12] as [number,number,number], r: 1.8, spd: -0.50, phase: 2.1, shirt: "#cc4444" },
+  { base: [22, 0, 20] as [number,number,number], r: 2.0, spd:  0.82, phase: 1.0, shirt: "#44aa66" },
+  { base: [35, 0,  8] as [number,number,number], r: 1.5, spd: -0.58, phase: 3.2, shirt: "#aa8844" },
+  { base: [30, 0, 26] as [number,number,number], r: 1.9, spd:  0.74, phase: 0.5, shirt: "#8844cc" },
+  { base: [18, 0, 14] as [number,number,number], r: 1.6, spd: -0.68, phase: 1.7, shirt: "#cc8822" },
+  { base: [25, 0, -3] as [number,number,number], r: 1.4, spd:  0.55, phase: 2.6, shirt: "#228888" },
+  { base: [38, 0, 19] as [number,number,number], r: 1.7, spd: -0.48, phase: 0.9, shirt: "#994422" },
+];
+
+const NPC_CAR_DEFS = [
+  { center: [28, 0, 10] as [number,number,number], r:  8, spd: 0.30, phase: 0.0,     color: "#5566cc" },
+  { center: [22, 0, 24] as [number,number,number], r:  6, spd: -0.24, phase: Math.PI, color: "#cc5544" },
+  { center: [33, 0, 18] as [number,number,number], r:  5, spd: 0.20, phase: 1.5,     color: "#44aa88" },
+];
+
+function Person({ base, r, spd, phase, shirt }: typeof PERSON_DEFS[number]) {
+  const grp  = useRef<THREE.Group>(null!);
+  const lLeg = useRef<THREE.Mesh>(null!);
+  const rLeg = useRef<THREE.Mesh>(null!);
+  const lArm = useRef<THREE.Mesh>(null!);
+  const rArm = useRef<THREE.Mesh>(null!);
+  const t    = useRef(phase);
+
+  useFrame((_, dt) => {
+    t.current += dt * spd;
+    const tc = t.current;
+    if (grp.current) {
+      grp.current.position.x = base[0] + Math.cos(tc) * r;
+      grp.current.position.z = base[2] + Math.sin(tc) * r;
+      grp.current.position.y = 0;
+      grp.current.rotation.y = -(tc + Math.PI / 2) * Math.sign(spd);
+    }
+    const swing = Math.sin(tc * 5) * 0.22;
+    if (lLeg.current) lLeg.current.rotation.x =  swing;
+    if (rLeg.current) rLeg.current.rotation.x = -swing;
+    if (lArm.current) lArm.current.rotation.x = -swing * 0.7;
+    if (rArm.current) rArm.current.rotation.x =  swing * 0.7;
+  });
+
+  return (
+    <group ref={grp}>
+      {/* torso */}
+      <mesh position={[0, 0.34, 0]}>
+        <boxGeometry args={[0.14, 0.26, 0.09]} />
+        <meshStandardMaterial color={shirt} roughness={0.75} />
+      </mesh>
+      {/* head */}
+      <mesh position={[0, 0.58, 0]}>
+        <boxGeometry args={[0.11, 0.12, 0.10]} />
+        <meshStandardMaterial color="#f0c080" roughness={0.65} />
+      </mesh>
+      {/* legs */}
+      <mesh ref={lLeg} position={[-0.04, 0.12, 0]}>
+        <boxGeometry args={[0.055, 0.20, 0.065]} />
+        <meshStandardMaterial color="#2a2a2a" roughness={0.85} />
+      </mesh>
+      <mesh ref={rLeg} position={[0.04, 0.12, 0]}>
+        <boxGeometry args={[0.055, 0.20, 0.065]} />
+        <meshStandardMaterial color="#2a2a2a" roughness={0.85} />
+      </mesh>
+      {/* arms */}
+      <mesh ref={lArm} position={[-0.10, 0.32, 0]}>
+        <boxGeometry args={[0.045, 0.18, 0.055]} />
+        <meshStandardMaterial color={shirt} roughness={0.75} />
+      </mesh>
+      <mesh ref={rArm} position={[0.10, 0.32, 0]}>
+        <boxGeometry args={[0.045, 0.18, 0.055]} />
+        <meshStandardMaterial color={shirt} roughness={0.75} />
+      </mesh>
+    </group>
+  );
+}
+
+function NPCCar({ center, r, spd, phase, color }: typeof NPC_CAR_DEFS[number]) {
+  const ref = useRef<THREE.Group>(null!);
+  const t   = useRef(phase);
+
+  useFrame((_, dt) => {
+    t.current += dt * spd;
+    const tc = t.current;
+    if (ref.current) {
+      ref.current.position.x = center[0] + Math.cos(tc) * r;
+      ref.current.position.y = 0.18;
+      ref.current.position.z = center[2] + Math.sin(tc) * r;
+      ref.current.rotation.y = -(tc + (spd > 0 ? Math.PI / 2 : -Math.PI / 2));
+    }
+  });
+
+  return (
+    <group ref={ref}>
+      <mesh position={[0, 0.14, 0]} castShadow>
+        <boxGeometry args={[0.68, 0.26, 1.35]} />
+        <meshStandardMaterial color={color} roughness={0.52} />
+      </mesh>
+      <mesh position={[0, 0.32, -0.08]} castShadow>
+        <boxGeometry args={[0.58, 0.21, 0.72]} />
+        <meshStandardMaterial color="#1a1a28" roughness={0.72} />
+      </mesh>
+      {([-0.21, 0.21] as number[]).map((x, i) => (
+        <mesh key={i} position={[x, 0.13, 0.68]}>
+          <boxGeometry args={[0.11, 0.07, 0.03]} />
+          <meshStandardMaterial color="#fffff0" emissive="#fffde0" emissiveIntensity={2.2} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function CityLife() {
+  return (
+    <>
+      {PERSON_DEFS.map((p, i) => <Person key={i} {...p} />)}
+      {NPC_CAR_DEFS.map((c, i) => <NPCCar key={i} {...c} />)}
     </>
   );
 }
@@ -884,6 +1021,7 @@ function Scene({
   const carPitch        = useRef(0);
   const flippedRef      = useRef(false);
   const flipTimer       = useRef(0);
+  const carVY           = useRef(0);
 
   useFrame(({ camera }, delta) => {
     /* ── teleport: applied the frame after popup closes ── */
@@ -964,14 +1102,19 @@ function Scene({
       }
     }
 
-    carBump.current *= 0.82;
+    carBump.current *= 0.80;
     const ground  = sampleH(carPos.current.x, carPos.current.z);
-    const targetY = ground + 0.26 + carBump.current;
-    /* hard floor so car never clips into terrain on steep ascents */
-    carPos.current.y = Math.max(
-      ground + 0.20,
-      THREE.MathUtils.lerp(carPos.current.y, targetY, 0.30),
-    );
+    const floorY  = ground + 0.26 + carBump.current;
+
+    /* gravity — car can leave ground and fly over hills */
+    carVY.current += GRAVITY * dt;
+    carPos.current.y += carVY.current * dt;
+
+    if (carPos.current.y <= floorY) {
+      carPos.current.y = floorY;
+      if (carVY.current < -3) carBump.current = Math.min(0.30, -carVY.current * 0.016);
+      carVY.current = 0;
+    }
 
     /* ── right-car request ── */
     if (rightCarRef.current) {
@@ -979,6 +1122,7 @@ function Scene({
       carRoll.current     = 0;
       carPitch.current    = 0;
       flipTimer.current   = 0;
+      carVY.current       = 0;
       carPos.current.set(0, sampleH(0, 3) + 0.26, 3);
       speedRef.current    = 0;
       rightCarRef.current = false;
@@ -1077,6 +1221,7 @@ function Scene({
       <MountainWarning position={[-7, 0, 23]} />
       <SecretPath />
       <DogHouse carPosRef={carPos} onEnter={onAboutEnter} />
+      <CityLife />
 
       {/* scene objects */}
       <InfoPoster position={[0, 0, 46]} />
@@ -1298,12 +1443,21 @@ export default function LabGame() {
     setActiveProject(null);
   }, []);
 
+  const [dogEntering, setDogEntering] = useState(false);
+
   const handleFlip       = useCallback(() => setIsFlipped(true), []);
   const handleRightCar   = useCallback(() => {
     rightCarRef.current = true;
     setIsFlipped(false);
   }, []);
-  const handleAboutEnter = useCallback(() => router.push("/about"), [router]);
+  const handleAboutEnter = useCallback(() => setDogEntering(true), []);
+
+  useEffect(() => {
+    if (dogEntering) {
+      const t = setTimeout(() => router.push("/about"), 1300);
+      return () => clearTimeout(t);
+    }
+  }, [dogEntering, router]);
 
   useEffect(() => setReady(true), []);
   if (!ready) return null;
@@ -1325,6 +1479,23 @@ export default function LabGame() {
         />
       </Canvas>
       <HUD />
+      {dogEntering && (
+        <>
+          <style>{`
+            @keyframes dogPortal {
+              0%   { opacity: 0; background: radial-gradient(circle at 72% 72%, #ff8833 0%, #ffcc88 40%, #ffffff 80%); }
+              25%  { opacity: 0.6; }
+              65%  { opacity: 0.95; }
+              100% { opacity: 1; background: radial-gradient(circle at 72% 72%, #ffeecc 0%, #ffffff 60%); }
+            }
+          `}</style>
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 50,
+            pointerEvents: "none",
+            animation: "dogPortal 1.3s ease-in forwards",
+          }} />
+        </>
+      )}
       {isFlipped && (
         <div style={{
           position: "absolute", inset: 0, zIndex: 10,
