@@ -1253,14 +1253,16 @@ function Scene({
         ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, 28, 0.04);
       }
 
-      /* dog house proximity zoom: pull camera in as car approaches */
+      /* dog house proximity zoom: pull camera in tight as car approaches */
       if (ctrl.spherical) {
         const ddx = carPos.current.x - DOG_POS[0];
         const ddz = carPos.current.z - DOG_POS[2];
         const dogDist = Math.sqrt(ddx * ddx + ddz * ddz);
-        const dogT = Math.max(0, 1 - dogDist / 22);        // 0 far away → 1 right at door
-        const targetRadius = THREE.MathUtils.lerp(ctrl.spherical.radius, 8, dogT * 0.06);
-        if (dogT > 0) ctrl.spherical.radius = targetRadius;
+        const dogT = Math.max(0, 1 - dogDist / 42);        // starts at dist 42
+        if (dogT > 0) {
+          const targetR = THREE.MathUtils.lerp(28, 3.5, dogT * dogT); // quadratic → very close at center
+          ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, targetR, 0.08);
+        }
       }
     }
 
