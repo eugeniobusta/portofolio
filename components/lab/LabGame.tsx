@@ -22,15 +22,15 @@ const C_GLASS = "#cce8ff";
 const ACCEL       = 38;
 const BRAKE       = 22;
 const FRIC        = 0.92;
-const BOOST_ACCEL = 85;
+const BOOST_ACCEL = 60;
 const BOOST_FRIC  = 0.96;
 const MAX_SPD     = 48;
-const BOOST_MAX   = 90;
+const BOOST_MAX   = 55;
 const STEER       = 2.6;
 const GRAVITY     = -22;
-const SMOKE_N     = 80;
-const FIRE_N      = 160;
-const DARK_N      = 60;
+const SMOKE_N     = 60;
+const FIRE_N      = 100;
+const DARK_N      = 40;
 
 function buildGround() {
   const g = new THREE.PlaneGeometry(WORLD, WORLD, 60, 60);
@@ -385,10 +385,10 @@ function BoostTrail({
     if (on) {
       timer.current -= dt;
       if (timer.current <= 0) {
-        timer.current = 0.013; // burst every 13 ms
+        timer.current = 0.022; // burst every 22 ms
 
-        /* bright fire sparks (12 per burst) */
-        for (let k = 0; k < 12; k++) {
+        /* bright fire sparks (8 per burst) */
+        for (let k = 0; k < 8; k++) {
           const p = firePuffs.current.find(p => !p.on);
           if (!p) break;
           const ox = (Math.random() - 0.5) * 1.4;
@@ -410,8 +410,8 @@ function BoostTrail({
           p.startColor.setHex(Math.random() > 0.4 ? 0x90ffb0 : 0x3ecf6a);
         }
 
-        /* dark smoke plumes (4 per burst) */
-        for (let k = 0; k < 4; k++) {
+        /* dark smoke plumes (3 per burst) */
+        for (let k = 0; k < 3; k++) {
           const p = darkPuffs.current.find(p => !p.on);
           if (!p) break;
           const ox = (Math.random() - 0.5) * 1.6;
@@ -1096,7 +1096,8 @@ function Scene({
 
     if (w) spd += (boost ? BOOST_ACCEL : ACCEL) * dt;
     if (s) spd -= BRAKE * dt;
-    spd *= boost ? BOOST_FRIC : FRIC;
+    /* dt-normalised friction: same deceleration regardless of frame rate */
+    spd *= Math.pow(boost ? BOOST_FRIC : FRIC, dt * 60);
     spd  = Math.max(-(boost ? BOOST_MAX : MAX_SPD) * 0.4, Math.min(boost ? BOOST_MAX : MAX_SPD, spd));
     speedRef.current = spd;
 
@@ -1232,15 +1233,10 @@ function Scene({
       const dogT = Math.max(0, 1 - dogDist / 30); // 0 far, 1 at dog house
 
       if (dogT > 0) {
-        /* ── dog house mode: kill normal lookahead, snap onto car ── */
-        ctrl.minDistance = 1;
-
-        /* target = car position (slightly elevated) — camera sits right on top */
+        /* ── dog house mode: track car position, let user control zoom ── */
+        ctrl.minDistance = 2;
         _dogTarget.current.set(carPos.current.x, carPos.current.y + 0.6, carPos.current.z);
         (ctrl.target as THREE.Vector3).lerp(_dogTarget.current, 0.18);
-
-        /* radius: from wherever it currently is → 1.8 (right on the car) */
-        ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, 1.8, 0.14);
       } else {
         /* ── normal mode ── */
         ctrl.minDistance = 5;
