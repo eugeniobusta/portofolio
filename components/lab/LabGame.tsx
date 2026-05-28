@@ -1238,39 +1238,41 @@ function Scene({
     /* ── heading-based lookahead camera ── */
     if (orbitRef.current && car) {
       const ctrl = orbitRef.current as any;
-      const lookaheadDist = THREE.MathUtils.clamp(Math.abs(spd) * 0.4, 2, 14);
-      lookaheadTarget.current.set(
-        carPos.current.x + Math.sin(carYaw.current) * lookaheadDist,
-        carPos.current.y,
-        carPos.current.z + Math.cos(carYaw.current) * lookaheadDist,
-      );
-      (ctrl.target as THREE.Vector3).lerp(lookaheadTarget.current, 0.055);
 
-      const camDist = camera.position.distanceTo(car.position);
+      const ddx = carPos.current.x - DOG_POS[0];
+      const ddz = carPos.current.z - DOG_POS[2];
+      const dogDist = Math.sqrt(ddx * ddx + ddz * ddz);
+      const dogT = Math.max(0, 1 - dogDist / 30); // 0 far, 1 at dog house
 
-      /* auto-zoom out when car drifts far from center */
-      if (camDist > 38 && ctrl.spherical) {
-        ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, 28, 0.04);
-      }
+      if (dogT > 0) {
+        /* ── dog house mode: kill normal lookahead, snap onto car ── */
+        ctrl.minDistance = 1;
 
-      /* dog house proximity zoom: readable sign text by the time you arrive */
-      if (ctrl.spherical) {
-        const ddx = carPos.current.x - DOG_POS[0];
-        const ddz = carPos.current.z - DOG_POS[2];
-        const dogDist = Math.sqrt(ddx * ddx + ddz * ddz);
-        /* linear 0→1 over the last 30 units — halfway = noticeable zoom already */
-        const dogT = Math.max(0, 1 - dogDist / 30);
-        if (dogT > 0) {
-          /* lower minDistance so OrbitControls doesn't clamp us */
-          ctrl.minDistance = THREE.MathUtils.lerp(5, 1.5, dogT);
-          /* lerp radius toward 2 — aggressive lerp so it actually moves */
-          ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, 2, 0.10);
-          /* aim the orbit target at the sign board center */
-          const signCenter = new THREE.Vector3(37, 2.5, -37);
-          (ctrl.target as THREE.Vector3).lerp(signCenter, dogT * 0.10);
-        } else {
-          /* restore minDistance when not near dog house */
-          ctrl.minDistance = 5;
+        /* target = car position (slightly elevated) — camera sits right on top */
+        const carTarget = new THREE.Vector3(
+          carPos.current.x,
+          carPos.current.y + 0.6,
+          carPos.current.z,
+        );
+        (ctrl.target as THREE.Vector3).lerp(carTarget, 0.18);
+
+        /* radius: from wherever it currently is → 1.8 (right on the car) */
+        ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, 1.8, 0.14);
+      } else {
+        /* ── normal mode ── */
+        ctrl.minDistance = 5;
+
+        const lookaheadDist = THREE.MathUtils.clamp(Math.abs(spd) * 0.4, 2, 14);
+        lookaheadTarget.current.set(
+          carPos.current.x + Math.sin(carYaw.current) * lookaheadDist,
+          carPos.current.y,
+          carPos.current.z + Math.cos(carYaw.current) * lookaheadDist,
+        );
+        (ctrl.target as THREE.Vector3).lerp(lookaheadTarget.current, 0.055);
+
+        const camDist = camera.position.distanceTo(car.position);
+        if (camDist > 38 && ctrl.spherical) {
+          ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, 28, 0.04);
         }
       }
     }
