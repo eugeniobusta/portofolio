@@ -369,3 +369,10 @@ body {
   40%        { transform: translate(16px,  -20px); }
   80%        { transform: translate(-10px,  14px); }
 }
+
+/* ─── LAB GAME ──────────────────────────────────────────────────────────────*/
+
+@keyframes dog-portal {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

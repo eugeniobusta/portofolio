@@ -733,14 +733,11 @@ const DOG_TRIGGER_R = 3.5;
 function DogHouse({
   carPosRef,
   onEnter,
-  screenRef,
 }: {
   carPosRef: React.MutableRefObject<THREE.Vector3>;
   onEnter: () => void;
-  screenRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const enteredRef  = useRef(false);
-  const glowRef     = useRef<THREE.PointLight>(null!);
+  const enteredRef = useRef(false);
 
   const signTex = useMemo(() => {
     if (typeof window === "undefined") return null;
@@ -794,24 +791,10 @@ function DogHouse({
   useEffect(() => () => { signTex?.dispose(); }, [signTex]);
 
   useFrame(() => {
+    if (enteredRef.current) return;
     const dx = carPosRef.current.x - DOG_POS[0];
     const dz = carPosRef.current.z - DOG_POS[2];
-    const dist = Math.sqrt(dx * dx + dz * dz);
-
-    /* 3D proximity glow — starts at dist 28, intensifies quadratically */
-    if (glowRef.current) {
-      const t = Math.max(0, 1 - dist / 28);
-      glowRef.current.intensity = t * t * t * 48;
-      glowRef.current.distance  = 15 + t * 45;
-    }
-
-    /* screen overlay — ambient orange vignette builds from dist 18 */
-    if (screenRef.current && !enteredRef.current) {
-      const st = Math.max(0, 1 - dist / 18);
-      screenRef.current.style.opacity = String(st * 0.45);
-    }
-
-    if (!enteredRef.current && dist < DOG_TRIGGER_R) {
+    if (dx * dx + dz * dz < DOG_TRIGGER_R * DOG_TRIGGER_R) {
       enteredRef.current = true;
       onEnter();
     }
@@ -855,9 +838,6 @@ function DogHouse({
         {/* warm interior glow through doorway */}
         <pointLight position={[0, 1.0, 0.5]} color="#ff9933" intensity={4} distance={8} decay={2} />
       </group>
-
-      {/* proximity glow that swells as car approaches */}
-      <pointLight ref={glowRef} position={DOG_POS} color="#ff8822" distance={15} decay={1.2} intensity={0} />
 
       {/* sign — group rotated so poles + board face toward center; rotation.y=-π/4 keeps UV correct */}
       {signTex && (
@@ -1073,14 +1053,12 @@ function Scene({
   onFlip,
   rightCarRef,
   onAboutEnter,
-  dogOverlayRef,
 }: {
   onProjectEnter: (p: Project, tp: [number, number]) => void;
   teleportRef: React.RefObject<[number, number] | null>;
   onFlip: () => void;
   rightCarRef: React.MutableRefObject<boolean>;
   onAboutEnter: () => void;
-  dogOverlayRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const keys            = useKeys();
   const carRef          = useRef<THREE.Group>(null!);
@@ -1315,7 +1293,7 @@ function Scene({
       <MountainWarning position={[-7, 0,  4]} />
       <MountainWarning position={[-7, 0, 23]} />
       <SecretPath />
-      <DogHouse carPosRef={carPos} onEnter={onAboutEnter} screenRef={dogOverlayRef} />
+      <DogHouse carPosRef={carPos} onEnter={onAboutEnter} />
       <CityLife />
 
       {/* scene objects */}
@@ -1650,7 +1628,6 @@ export default function LabGame() {
   }, []);
 
   const [dogEntering, setDogEntering] = useState(false);
-  const dogAmbientRef = useRef<HTMLDivElement>(null);
 
   const handleFlip       = useCallback(() => setIsFlipped(true), []);
   const handleRightCar   = useCallback(() => {
@@ -1692,40 +1669,21 @@ export default function LabGame() {
           onFlip={handleFlip}
           rightCarRef={rightCarRef}
           onAboutEnter={handleAboutEnter}
-          dogOverlayRef={dogAmbientRef}
         />
       </Canvas>
       <HUD />
       {showTutorial && <LabTutorial onDismiss={handleTutorialDismiss} />}
 
-      {/* ambient orange vignette — opacity driven directly by DogHouse useFrame (no re-renders) */}
-      <div
-        ref={dogAmbientRef}
-        style={{
-          position: "absolute", inset: 0, zIndex: 6,
-          pointerEvents: "none", opacity: 0,
-          background: "radial-gradient(ellipse at 80% 80%, rgba(255,100,0,0.55) 0%, rgba(255,160,40,0.25) 40%, transparent 70%)",
-        }}
-      />
-
       {dogEntering && (
-        <>
-          <style>{`
-            @keyframes dogPortal {
-              0%   { opacity: 0.45; transform: scale(0.92); }
-              15%  { opacity: 0.80; transform: scale(1.0); }
-              50%  { opacity: 0.96; background: radial-gradient(circle at 75% 78%, #ff6600 0%, #ffaa44 30%, #ffeecc 65%, #ffffff 90%); }
-              80%  { opacity: 1.0; background: radial-gradient(circle at 75% 78%, #ffcc88 0%, #ffffff 60%); }
-              100% { opacity: 1.0; background: #ffffff; }
-            }
-          `}</style>
-          <div style={{
-            position: "absolute", inset: 0, zIndex: 50,
-            pointerEvents: "none",
-            background: "radial-gradient(circle at 75% 78%, #ff6600 0%, #ffaa44 30%, #ffeecc 65%, #ffffff 90%)",
-            animation: "dogPortal 1.8s cubic-bezier(0.4,0,0.2,1) forwards",
-          }} />
-        </>
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 50,
+          pointerEvents: "none",
+          background: "#ffffff",
+          animationName: "dog-portal",
+          animationDuration: "1.8s",
+          animationTimingFunction: "ease-in",
+          animationFillMode: "forwards",
+        }} />
       )}
       {isFlipped && (
         <div style={{
