@@ -59,9 +59,9 @@ export default function About() {
           {/* Text column */}
           <div className="space-y-5">
             {[
-              "I'm a Computer Science student with a deep interest in AI systems — not just as tools, but as a design medium. The way large language models reshape how we write software, build products, and communicate ideas is something I think about daily.",
-              "My approach is simple: learn by building. Each project I start is an experiment in what's possible when you combine solid engineering with current AI capabilities. I move fast, I ship, I iterate.",
-              "I believe the next decade belongs to people who can hold the full stack in their head — from the model weights to the UI pixel. That's the kind of engineer I'm becoming.",
+              "CS student based in Dublin. I got into AI before it was everywhere and never really stopped. Most of my time outside of college goes into building things and seeing if they actually hold up.",
+              "I pick up projects mostly because I want to know how something really works. Usually that means I end up building it rather than just reading about it.",
+              "I want to be the kind of developer who can take an idea and make it real without needing a big team or a budget. That's what I'm working toward.",
             ].map((text, i) => (
               <motion.p
                 key={i}

@@ -71,8 +71,7 @@ export default function Contact() {
             Let's talk.
           </h2>
           <p className="mt-4 text-base text-muted max-w-md leading-relaxed">
-            Internships, collaborations, or just a conversation about AI — I
-            read everything and reply to everyone.
+            Internships, collabs, or just want to say hi. I read everything and reply to everyone.
           </p>
         </motion.div>
 

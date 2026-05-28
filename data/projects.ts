@@ -33,7 +33,7 @@ export const projects: Project[] = [
     id: "pitch",
     title: "Pitch",
     description:
-      "A React Native networking app for early-stage founders and investors. Swipe-based discovery, real-time messaging, and AI-powered match scoring that ranks connections by strategic fit.",
+      "A React Native app for founders and investors to find each other. Swipe through profiles, chat in real time, get matched based on what you're actually building.",
     stack: [
       { name: "React Native", color: "blue" },
       { name: "Expo", color: "blue" },
@@ -52,7 +52,7 @@ export const projects: Project[] = [
     id: "cosmosbusta",
     title: "CosmosBusta",
     description:
-      "Interactive 3D solar system in the browser. Built with React Three Fiber and real NASA orbital data. Zoom to any planet, read its properties, watch it orbit in real time.",
+      "3D solar system you can actually fly around in. Built with React Three Fiber and real NASA orbital data. Zoom in on any planet and read what it's made of.",
     stack: [
       { name: "Next.js", color: "plain" },
       { name: "React Three Fiber", color: "blue" },
@@ -69,7 +69,7 @@ export const projects: Project[] = [
     id: "voice-calendar",
     title: "VoiceCalendar AI",
     description:
-      "Talk to your calendar. Transcribes speech with Whisper, extracts structured event data with Groq, then writes directly to Google Calendar. Available via web, CLI, and Telegram.",
+      "Talk to your calendar. Say what you want to schedule, it transcribes it with Whisper, pulls out the details with Groq, and adds the event to Google Calendar. Works from the web, CLI, or Telegram.",
     stack: [
       { name: "Python", color: "green" },
       { name: "Flask", color: "green" },
@@ -87,7 +87,7 @@ export const projects: Project[] = [
     id: "startup-match",
     title: "StartupMatch",
     description:
-      "AI-powered live video matchmaking for startups. Queue-based pairing algorithm, Daily.co embedded video rooms, and a Supabase backend that tracks every connection made.",
+      "Live video matchmaking for startups. You queue up, get paired with someone relevant, jump on a video call. Built with Daily.co for the video rooms and Supabase for the backend.",
     stack: [
       { name: "Next.js", color: "plain" },
       { name: "Supabase", color: "green" },
@@ -104,7 +104,7 @@ export const projects: Project[] = [
     id: "social-tennis",
     title: "Social Tennis",
     description:
-      "Marketing and community website for DCU's social tennis club. Built with Sanity CMS for content updates, session listings, gallery, and announcements — all manageable by the committee without code.",
+      "Website for DCU's social tennis club. Session listings, gallery, announcements. The committee can update everything through Sanity CMS without touching code.",
     stack: [
       { name: "React", color: "blue" },
       { name: "Vite", color: "amber" },
@@ -124,21 +124,21 @@ export const ideas: Idea[] = [
     id: "llm-arena",
     title: "LLM Arena",
     description:
-      "Run the same prompt through multiple LLMs simultaneously, score responses with a judge model, and visualize quality drift over time.",
+      "Run the same prompt through a few different models at once, compare the outputs, and track which model does better at what over time.",
     tags: ["Python", "Next.js", "Claude API"],
   },
   {
     id: "codereview-ai",
     title: "CodeReview AI",
     description:
-      "A GitHub App that reviews PRs like a senior engineer — with inline comments, architectural feedback, and a severity score per diff.",
+      "A GitHub App that leaves inline comments on your PRs like an actual reviewer would. Points out issues, asks questions, flags anything that looks wrong.",
     tags: ["Node.js", "GitHub API", "Claude"],
   },
   {
     id: "local-voice",
     title: "Local Voice Dev",
     description:
-      "Voice-activated coding assistant that reads your editor buffer and answers questions about the current file, running fully offline.",
+      "A coding assistant you talk to. It knows what file you have open and answers questions about it. Runs completely offline.",
     tags: ["Rust", "Whisper.cpp", "Ollama"],
   },
 ];

@@ -766,9 +766,9 @@ function DogHouse({
 
     ctx.fillStyle = "#3a2408";
     ctx.font = "22px Georgia, serif";
-    ctx.fillText("That means you're interested in", W / 2, 102);
-    ctx.fillText("who I am — and maybe joining", W / 2, 132);
-    ctx.fillText("my adventure, or inviting me to yours.", W / 2, 162);
+    ctx.fillText("That means you're curious about", W / 2, 102);
+    ctx.fillText("who I am. Maybe you want to work", W / 2, 132);
+    ctx.fillText("together, or just say hi.", W / 2, 162);
 
     ctx.strokeStyle = "#c89030";
     ctx.lineWidth = 2;

@@ -153,13 +153,13 @@ export function InfoPoster({ position }: { position: [number, number, number] })
     /* role */
     x.fillStyle = MUTED;
     x.font = "italic 26px Georgia, serif";
-    x.fillText("Full-stack engineer & AI builder", RX, 242);
+    x.fillText("Software developer. Dublin, Ireland.", RX, 242);
 
     /* bio */
     x.fillStyle = "#4b5563";
     x.font = "21px Georgia, serif";
-    x.fillText("Building at the edge of software and", RX, 278);
-    x.fillText("intelligence. Making AI feel inevitable.", RX, 305);
+    x.fillText("CS student building software with AI.", RX, 278);
+    x.fillText("I like things that actually work.", RX, 305);
 
     /* amber accent rule */
     x.fillStyle = ACCENT_A;
