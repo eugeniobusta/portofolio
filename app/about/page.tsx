@@ -1,441 +1,352 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { motion, useInView } from "framer-motion";
+import { useRef } from "react";
+import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import Link from "next/link";
 
-/* ── Fade-up reveal used throughout ───────────────────────────── */
-function Reveal({
-  children,
-  delay = 0,
-  className = "",
-}: {
-  children: React.ReactNode;
-  delay?: number;
-  className?: string;
+/* ── scroll-reveal ───────────────────────────────────────────── */
+function Reveal({ children, delay = 0, className = "" }: {
+  children: React.ReactNode; delay?: number; className?: string;
 }) {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-60px" });
+  const inView = useInView(ref, { once: true, margin: "-50px" });
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 28 }}
+    <motion.div ref={ref} className={className}
+      initial={{ opacity: 0, y: 22 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] }}
-      className={className}
+      transition={{ duration: 0.65, delay, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.div>
   );
 }
 
-/* ── Photo placeholder — swap src once you have real photos ────── */
-function Photo({
-  src,
-  alt,
-  aspect = "square",
-  className = "",
-}: {
-  src?: string;
-  alt: string;
-  aspect?: "square" | "portrait" | "wide";
-  className?: string;
-}) {
-  const aspectClass =
-    aspect === "portrait" ? "aspect-[3/4]" :
-    aspect === "wide"     ? "aspect-[16/9]" :
-                            "aspect-square";
-
+/* ── photo placeholder ───────────────────────────────────────── */
+function Photo({ src, alt, style = {} }: { src?: string; alt: string; style?: React.CSSProperties }) {
   return (
-    <div className={`relative overflow-hidden rounded-2xl ${aspectClass} ${className}`}
-      style={{ background: "rgba(200,149,44,0.08)", border: "1px solid rgba(200,149,44,0.15)" }}>
-      {src ? (
-        <img src={src} alt={alt} className="w-full h-full object-cover" />
-      ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-          <div className="w-8 h-8 rounded-full opacity-20"
-            style={{ background: "radial-gradient(circle, #c8952c, transparent)" }} />
-          <span style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(200,149,44,0.35)", letterSpacing: "0.08em" }}>
-            photo soon
-          </span>
-        </div>
-      )}
+    <div style={{
+      borderRadius: 18, overflow: "hidden",
+      background: "rgba(210,150,60,0.08)",
+      border: "1px solid rgba(210,150,60,0.18)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      ...style,
+    }}>
+      {src
+        ? <img src={src} alt={alt} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        : <span style={{ fontSize: 10, fontFamily: "monospace", color: "rgba(180,120,40,0.35)", letterSpacing: "0.1em" }}>photo soon</span>
+      }
     </div>
   );
 }
 
-/* ── Thin amber divider ─────────────────────────────────────────── */
-function Divider() {
+/* ── lamp glow ───────────────────────────────────────────────── */
+function Lamp({ style = {} }: { style?: React.CSSProperties }) {
   return (
-    <div className="my-16 flex items-center gap-4">
-      <div className="flex-1 h-px" style={{ background: "rgba(200,149,44,0.15)" }} />
-      <div className="w-1 h-1 rounded-full" style={{ background: "rgba(200,149,44,0.4)" }} />
-      <div className="flex-1 h-px" style={{ background: "rgba(200,149,44,0.15)" }} />
-    </div>
+    <motion.div
+      animate={{ scale: [1, 1.06, 1], opacity: [1, 0.85, 1] }}
+      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+      style={{
+        position: "absolute", borderRadius: "50%", pointerEvents: "none",
+        background: "radial-gradient(circle, rgba(220,140,40,0.28) 0%, transparent 68%)",
+        filter: "blur(28px)",
+        ...style,
+      }}
+    />
   );
 }
 
-/* ── Main page ──────────────────────────────────────────────────── */
+/* ── page ────────────────────────────────────────────────────── */
 export default function AboutPage() {
-  const [entered, setEntered] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => setEntered(true), 80);
-    return () => clearTimeout(t);
-  }, []);
+  const { scrollYProgress } = useScroll();
+  const horizonY  = useTransform(scrollYProgress, [0, 1], ["0%", "12%"]);
+  const sunOpacity = useTransform(scrollYProgress, [0, 0.4, 1], [0.55, 0.75, 0.95]);
 
   return (
-    <main style={{ background: "#0d0b09", minHeight: "100vh", color: "#f0ebe3" }}>
+    <div style={{ position: "relative", minHeight: "100vh", overflowX: "hidden" }}>
 
-      {/* ── entrance fade from the orange portal ── */}
+      {/* ══ FIXED BACKGROUND ══════════════════════════════════════ */}
+      <div style={{ position: "fixed", inset: 0, zIndex: 0 }}>
+
+        {/* sky to sand gradient */}
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "linear-gradient(180deg, #f9f6ef 0%, #fef0d5 38%, #fdd89a 60%, #f5aa50 78%, #e07828 92%, #b85a18 100%)",
+        }} />
+
+        {/* horizon glow line */}
+        <motion.div style={{
+          position: "absolute", left: 0, right: 0, top: "64%", height: 180,
+          background: "radial-gradient(ellipse 100% 100% at 50% 50%, rgba(235,130,30,0.45) 0%, transparent 70%)",
+          y: horizonY, opacity: sunOpacity,
+        }} />
+
+        {/* sea shimmer */}
+        <div style={{
+          position: "absolute", left: 0, right: 0, top: "72%", bottom: 0,
+          background: "linear-gradient(180deg, rgba(230,140,40,0.22) 0%, rgba(180,90,20,0.12) 100%)",
+        }} />
+
+        {/* reading lamps */}
+        <Lamp style={{ width: 480, height: 480, left: -120, top: "2%" }} />
+        <Lamp style={{ width: 360, height: 360, right: -80,  top: "38%", animationDelay: "1.3s" }} />
+        <Lamp style={{ width: 320, height: 320, left: -60,   bottom: "12%" }} />
+      </div>
+
+      {/* ══ ENTRANCE fade from orange portal ═════════════════════ */}
       <motion.div
         initial={{ opacity: 1 }}
         animate={{ opacity: 0 }}
-        transition={{ duration: 1.0, delay: 0.1 }}
+        transition={{ duration: 1.1, delay: 0.05 }}
         style={{
-          position: "fixed", inset: 0, zIndex: 50, pointerEvents: "none",
-          background: "radial-gradient(circle at 72% 72%, #ff8822 0%, #ffcc66 40%, #fff8ee 100%)",
+          position: "fixed", inset: 0, zIndex: 60, pointerEvents: "none",
+          background: "radial-gradient(circle at 72% 72%, #ff8822 0%, #ffcc66 45%, #fff8ee 100%)",
         }}
       />
 
-      <div style={{ maxWidth: 660, margin: "0 auto", padding: "0 24px 120px" }}>
+      {/* ══ CONTENT ══════════════════════════════════════════════ */}
+      <div style={{ position: "relative", zIndex: 1, maxWidth: 680, margin: "0 auto", padding: "0 22px 88px" }}>
 
-        {/* ── back link ── */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={entered ? { opacity: 1 } : {}}
-          transition={{ duration: 0.6, delay: 0.9 }}
-          style={{ paddingTop: 40, paddingBottom: 8 }}
-        >
-          <Link
-            href="/"
-            style={{
-              fontSize: 12, fontFamily: "monospace",
-              color: "rgba(200,149,44,0.5)", textDecoration: "none",
-              letterSpacing: "0.06em", display: "inline-flex", alignItems: "center", gap: 6,
-            }}
-          >
-            ← back to the portfolio
-          </Link>
+        {/* back */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} style={{ paddingTop: 36 }}>
+          <Link href="/" style={{
+            fontSize: 11, fontFamily: "monospace", letterSpacing: "0.07em",
+            color: "rgba(160,95,20,0.55)", textDecoration: "none",
+          }}>← portfolio</Link>
         </motion.div>
 
-        {/* ══════════════════════════════════════════════
-            OPENING
-        ══════════════════════════════════════════════ */}
+        {/* ── OPENING ─────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 18 }}
-          animate={entered ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          style={{ paddingTop: 64, paddingBottom: 8 }}
-        >
-          <span style={{
-            fontSize: 11, fontFamily: "monospace", letterSpacing: "0.14em",
-            textTransform: "uppercase", color: "rgba(200,149,44,0.7)",
-          }}>
-            you made it to the corner
-          </span>
-        </motion.div>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 24 }}
-          animate={entered ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.9, delay: 0.85, ease: [0.22, 1, 0.36, 1] }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65, duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
           style={{
-            fontFamily: "var(--font-instrument)",
-            fontSize: "clamp(2.6rem, 8vw, 4.2rem)",
-            lineHeight: 1.05, letterSpacing: "-0.02em",
-            margin: "12px 0 20px", fontWeight: 400,
+            marginTop: 44, marginBottom: 20,
+            padding: "28px 30px",
+            background: "rgba(255,253,248,0.84)",
+            backdropFilter: "blur(18px)",
+            borderRadius: 20,
+            border: "1px solid rgba(210,150,50,0.18)",
+            boxShadow: "0 2px 28px rgba(180,100,20,0.07)",
           }}
         >
-          The long version.
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={entered ? { opacity: 1 } : {}}
-          transition={{ duration: 0.8, delay: 1.1 }}
-          style={{ fontSize: 16, lineHeight: 1.75, color: "rgba(240,235,227,0.6)", maxWidth: 520 }}
-        >
-          Most people see the portfolio and move on. You drove a jeep to the corner
-          of a 3D world to find this. That already tells me something about you.
-        </motion.p>
-
-        <Divider />
-
-        {/* ══════════════════════════════════════════════
-            PHOTO + ORIGIN
-        ══════════════════════════════════════════════ */}
-        <div className="grid grid-cols-[1fr_1fr] gap-5 mb-10">
-          <Reveal delay={0}>
-            <Photo alt="Eugenio portrait" aspect="portrait" />
-          </Reveal>
-          <Reveal delay={0.12} className="flex flex-col justify-end gap-5">
-            <Photo alt="Eugenio out" aspect="square" />
-            <Photo alt="Eugenio somewhere" aspect="square" />
-          </Reveal>
-        </div>
-
-        <Reveal>
-          <span style={{
-            fontSize: 11, fontFamily: "monospace", letterSpacing: "0.14em",
-            textTransform: "uppercase", color: "rgba(200,149,44,0.6)",
-          }}>
-            A few places, one person
+          <span style={{ fontSize: 10, fontFamily: "monospace", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(170,95,20,0.5)" }}>
+            you found the corner
           </span>
-          <h2 style={{
-            fontFamily: "var(--font-instrument)", fontSize: "clamp(1.6rem, 4vw, 2.2rem)",
-            lineHeight: 1.15, letterSpacing: "-0.015em", margin: "10px 0 18px", fontWeight: 400,
+          <h1 style={{
+            fontFamily: "var(--font-instrument)",
+            fontSize: "clamp(2.4rem, 8vw, 3.6rem)",
+            lineHeight: 1.06, letterSpacing: "-0.025em",
+            color: "#1a1008", margin: "10px 0 14px", fontWeight: 400,
           }}>
-            Málaga. England. Madrid. Paris. Dublin.
-          </h2>
-          <p style={{ fontSize: 15, lineHeight: 1.82, color: "rgba(240,235,227,0.65)" }}>
-            I grew up in Málaga. At seven I moved to England — long enough for English to stop
-            feeling foreign, long enough that it became part of me. At twelve, Madrid. I finished
-            school there while doing a dual diploma online from an American program for three years,
-            running both in parallel. Then a few months in Paris with a host family, keeping French
-            alive the way you only can by living it.
+            This is the real page.
+          </h1>
+          <p style={{ fontSize: 15, lineHeight: 1.72, color: "#7a6248", margin: 0 }}>
+            Most people scroll the portfolio and move on. You drove a jeep to a corner to find this. That already tells me something.
           </p>
-          <p style={{ fontSize: 15, lineHeight: 1.82, color: "rgba(240,235,227,0.65)", marginTop: 14 }}>
-            In 2025 I packed up and came to Dublin for Computer Science at DCU. Three countries,
-            three languages, and one thing that was always there — a computer screen in front of me.
-          </p>
-        </Reveal>
+        </motion.div>
 
-        <Divider />
-
-        {/* ══════════════════════════════════════════════
-            HOW IT STARTED
-        ══════════════════════════════════════════════ */}
+        {/* ── PHOTO + ID GRID ─────────────────────────────────── */}
         <Reveal>
-          <span style={{
-            fontSize: 11, fontFamily: "monospace", letterSpacing: "0.14em",
-            textTransform: "uppercase", color: "rgba(200,149,44,0.6)",
-          }}>
-            How it started
-          </span>
-          <h2 style={{
-            fontFamily: "var(--font-instrument)", fontSize: "clamp(1.6rem, 4vw, 2.2rem)",
-            lineHeight: 1.15, letterSpacing: "-0.015em", margin: "10px 0 18px", fontWeight: 400,
-          }}>
-            The first time I touched a computer, I just wanted to know everything it could do.
-          </h2>
-          <p style={{ fontSize: 15, lineHeight: 1.82, color: "rgba(240,235,227,0.65)" }}>
-            Not build anything — just explore. Every shortcut, every setting, every corner of
-            the file system. I was twelve when I wrote my first Python. Didn't stick with it.
-            Then I found HTML, CSS, JavaScript — and realised I could build anything I imagined,
-            exactly how I wanted it. That was the moment.
-          </p>
-          <p style={{ fontSize: 15, lineHeight: 1.82, color: "rgba(240,235,227,0.65)", marginTop: 14 }}>
-            My advice to anyone starting out: don't take a course. Just fidget. Explore everything.
-            See what the machine can actually do at its fullest.
-          </p>
-        </Reveal>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
 
-        <Divider />
+            <Photo alt="Eugenio" style={{ minHeight: 300 }} />
 
-        {/* ══════════════════════════════════════════════
-            LIFE OUTSIDE CODE
-        ══════════════════════════════════════════════ */}
-        <div className="grid grid-cols-2 gap-5 mb-10">
-          <Reveal delay={0}><Photo alt="Tennis" aspect="wide" /></Reveal>
-          <Reveal delay={0.1}><Photo alt="Music" aspect="wide" /></Reveal>
-        </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {/* name card */}
+              <div style={{
+                flex: 1, padding: "20px 22px",
+                background: "rgba(255,253,248,0.86)", backdropFilter: "blur(14px)",
+                borderRadius: 16, border: "1px solid rgba(210,150,50,0.16)",
+              }}>
+                <div style={{
+                  fontFamily: "var(--font-instrument)",
+                  fontSize: "1.55rem", lineHeight: 1.15, letterSpacing: "-0.015em", color: "#1a1008",
+                }}>
+                  Eugenio<br />Bustamante
+                </div>
+                <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 7 }}>
+                  {[
+                    { k: "From", v: "Málaga, Spain" },
+                    { k: "Now",  v: "Dublin, Ireland" },
+                    { k: "CS",   v: "2nd year, DCU" },
+                  ].map(({ k, v }) => (
+                    <div key={k} style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                      <span style={{ fontSize: 9, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.09em", color: "rgba(170,95,20,0.5)", minWidth: 28 }}>{k}</span>
+                      <span style={{ fontSize: 13, color: "#5a4030" }}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-        <Reveal>
-          <span style={{
-            fontSize: 11, fontFamily: "monospace", letterSpacing: "0.14em",
-            textTransform: "uppercase", color: "rgba(200,149,44,0.6)",
-          }}>
-            Outside the screen
-          </span>
-          <h2 style={{
-            fontFamily: "var(--font-instrument)", fontSize: "clamp(1.6rem, 4vw, 2.2rem)",
-            lineHeight: 1.15, letterSpacing: "-0.015em", margin: "10px 0 18px", fontWeight: 400,
-          }}>
-            Tennis, every day. Music, every day.
-          </h2>
-          <p style={{ fontSize: 15, lineHeight: 1.82, color: "rgba(240,235,227,0.65)" }}>
-            If I could do one sport for the rest of my life it would be tennis. No question.
-            The gym too — daily, no particular reason, I just like it. And music: piano, guitar,
-            ukulele, drums. I compose as well — I have my own pieces made with software.
-          </p>
-          <p style={{ fontSize: 15, lineHeight: 1.82, color: "rgba(240,235,227,0.65)", marginTop: 14 }}>
-            Music and code feel similar to me. Both are about building something from nothing
-            and making it feel inevitable once it exists.
-          </p>
-        </Reveal>
-
-        <Divider />
-
-        {/* ══════════════════════════════════════════════
-            AI OPINION
-        ══════════════════════════════════════════════ */}
-        <Reveal>
-          <span style={{
-            fontSize: 11, fontFamily: "monospace", letterSpacing: "0.14em",
-            textTransform: "uppercase", color: "rgba(200,149,44,0.6)",
-          }}>
-            An honest opinion
-          </span>
-          <h2 style={{
-            fontFamily: "var(--font-instrument)", fontSize: "clamp(1.6rem, 4vw, 2.2rem)",
-            lineHeight: 1.15, letterSpacing: "-0.015em", margin: "10px 0 18px", fontWeight: 400,
-          }}>
-            AI is just the next layer. Assembly. C. Python. Claude. Same idea, bigger jump.
-          </h2>
-          <p style={{ fontSize: 15, lineHeight: 1.82, color: "rgba(240,235,227,0.65)" }}>
-            We didn't stop learning C because Python existed. We learned to use Python because
-            it was more powerful. Same thing is happening now. We shouldn't be learning to code
-            instead of using AI — we should be learning to code <em>with</em> AI. That's not
-            laziness. That's just how the stack evolves.
-          </p>
-          <p style={{ fontSize: 15, lineHeight: 1.82, color: "rgba(240,235,227,0.65)", marginTop: 14 }}>
-            Here's what I actually think though: in a few years, websites won't be built for
-            humans to browse. They'll be endpoints for AI agents. The beautiful animations,
-            the hero sections, all of it — built for machines to read, not people to see.
-            This page might be one of the last generations of things built to be pretty for people.
-          </p>
-          <p style={{ fontSize: 15, lineHeight: 1.82, color: "rgba(240,235,227,0.65)", marginTop: 14 }}>
-            I find that exciting, not sad.
-          </p>
-        </Reveal>
-
-        <Divider />
-
-        {/* ══════════════════════════════════════════════
-            FUTURE
-        ══════════════════════════════════════════════ */}
-        <Reveal>
-          <span style={{
-            fontSize: 11, fontFamily: "monospace", letterSpacing: "0.14em",
-            textTransform: "uppercase", color: "rgba(200,149,44,0.6)",
-          }}>
-            Where I'm headed
-          </span>
-          <h2 style={{
-            fontFamily: "var(--font-instrument)", fontSize: "clamp(1.6rem, 4vw, 2.2rem)",
-            lineHeight: 1.15, letterSpacing: "-0.015em", margin: "10px 0 18px", fontWeight: 400,
-          }}>
-            Simple goals.
-          </h2>
-          <p style={{ fontSize: 15, lineHeight: 1.82, color: "rgba(240,235,227,0.65)" }}>
-            Own Pitch and make something real out of it. Prove that discipline gets you wherever
-            you decide to go — not talent, not luck, discipline. Work for myself, or if for
-            someone else, in the most respectful and honest way possible.
-          </p>
-          <p style={{ fontSize: 15, lineHeight: 1.82, color: "rgba(240,235,227,0.65)", marginTop: 14 }}>
-            Travel everywhere. See everything. Stay curious.
-          </p>
-        </Reveal>
-
-        <Divider />
-
-        {/* ══════════════════════════════════════════════
-            PITCH CTA
-        ══════════════════════════════════════════════ */}
-        <Reveal>
-          <span style={{
-            fontSize: 11, fontFamily: "monospace", letterSpacing: "0.14em",
-            textTransform: "uppercase", color: "rgba(200,149,44,0.6)",
-          }}>
-            The adventure
-          </span>
-          <h2 style={{
-            fontFamily: "var(--font-instrument)", fontSize: "clamp(1.6rem, 4vw, 2.2rem)",
-            lineHeight: 1.15, letterSpacing: "-0.015em", margin: "10px 0 18px", fontWeight: 400,
-          }}>
-            I'm building Pitch. Join if you want.
-          </h2>
-          <p style={{ fontSize: 15, lineHeight: 1.82, color: "rgba(240,235,227,0.65)" }}>
-            Pitch is a networking platform for founders and investors — think LinkedIn, but built
-            specifically for this world. Premium, focused, something people actually feel they need
-            to have. A place where a startup can show everything it's about and find the investor
-            who believes in it.
-          </p>
-          <p style={{ fontSize: 15, lineHeight: 1.82, color: "rgba(240,235,227,0.65)", marginTop: 14 }}>
-            If you're a developer, designer, or just someone who believes in the idea and wants
-            to be part of building it — I'm genuinely open to it. Not looking for investment,
-            not looking for a pitch meeting. Just someone who wants to build something real.
-          </p>
-        </Reveal>
-
-        {/* Contact cards */}
-        <Reveal delay={0.1}>
-          <div className="grid grid-cols-2 gap-3 mt-8">
-            <a
-              href="mailto:eugeniobrb@icloud.com"
-              style={{
-                display: "flex", flexDirection: "column", gap: 6,
-                padding: "20px 22px", borderRadius: 14, textDecoration: "none",
-                background: "rgba(200,149,44,0.07)", border: "1px solid rgba(200,149,44,0.2)",
-                transition: "background 0.2s, border-color 0.2s",
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.background = "rgba(200,149,44,0.12)";
-                (e.currentTarget as HTMLElement).style.borderColor = "rgba(200,149,44,0.4)";
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.background = "rgba(200,149,44,0.07)";
-                (e.currentTarget as HTMLElement).style.borderColor = "rgba(200,149,44,0.2)";
-              }}
-            >
-              <span style={{ fontSize: 10, fontFamily: "monospace", letterSpacing: "0.1em", color: "rgba(200,149,44,0.6)", textTransform: "uppercase" }}>Email</span>
-              <span style={{ fontSize: 13, color: "#f0ebe3", fontFamily: "monospace" }}>eugeniobrb@icloud.com</span>
-            </a>
-            <a
-              href="https://wa.me/34697476663"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "flex", flexDirection: "column", gap: 6,
-                padding: "20px 22px", borderRadius: 14, textDecoration: "none",
-                background: "rgba(200,149,44,0.07)", border: "1px solid rgba(200,149,44,0.2)",
-                transition: "background 0.2s, border-color 0.2s",
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.background = "rgba(200,149,44,0.12)";
-                (e.currentTarget as HTMLElement).style.borderColor = "rgba(200,149,44,0.4)";
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.background = "rgba(200,149,44,0.07)";
-                (e.currentTarget as HTMLElement).style.borderColor = "rgba(200,149,44,0.2)";
-              }}
-            >
-              <span style={{ fontSize: 10, fontFamily: "monospace", letterSpacing: "0.1em", color: "rgba(200,149,44,0.6)", textTransform: "uppercase" }}>WhatsApp</span>
-              <span style={{ fontSize: 13, color: "#f0ebe3", fontFamily: "monospace" }}>+34 697 476 663</span>
-            </a>
-          </div>
-        </Reveal>
-
-        {/* ══════════════════════════════════════════════
-            SIGN-OFF
-        ══════════════════════════════════════════════ */}
-        <Reveal delay={0.05}>
-          <div style={{ marginTop: 80, paddingTop: 32, borderTop: "1px solid rgba(200,149,44,0.12)" }}>
-            <p style={{
-              fontFamily: "var(--font-instrument)", fontSize: "clamp(1.1rem, 3vw, 1.4rem)",
-              color: "rgba(240,235,227,0.45)", lineHeight: 1.6, fontStyle: "italic",
-            }}>
-              "Thanks for making it to the corner."
-            </p>
-            <p style={{ marginTop: 12, fontSize: 13, fontFamily: "monospace", color: "rgba(200,149,44,0.5)" }}>
-              — Eugenio
-            </p>
-            <div style={{ marginTop: 28 }}>
-              <Link
-                href="/"
-                style={{
-                  fontSize: 12, fontFamily: "monospace", color: "rgba(200,149,44,0.45)",
-                  textDecoration: "none", letterSpacing: "0.06em",
-                }}
-              >
-                ← back to the portfolio
-              </Link>
+              {/* languages */}
+              <div style={{
+                padding: "14px 18px",
+                background: "rgba(215,145,40,0.1)", backdropFilter: "blur(10px)",
+                borderRadius: 14, border: "1px solid rgba(210,150,50,0.22)",
+              }}>
+                <div style={{ fontSize: 9, fontFamily: "monospace", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(160,90,20,0.55)", marginBottom: 8 }}>Languages</div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[["🇪🇸","ES"],["🇬🇧","EN"],["🇫🇷","FR"]].map(([flag, code]) => (
+                    <span key={code} style={{
+                      display: "flex", alignItems: "center", gap: 4,
+                      fontSize: 12, padding: "4px 10px", borderRadius: 20,
+                      background: "rgba(255,253,248,0.82)",
+                      border: "1px solid rgba(210,155,55,0.28)",
+                      color: "#5a4030",
+                    }}><span style={{ fontSize: 14 }}>{flag}</span>{code}</span>
+                  ))}
+                </div>
+                <div style={{ fontSize: 9, fontFamily: "monospace", color: "rgba(160,90,20,0.4)", marginTop: 7 }}>all native</div>
+              </div>
             </div>
           </div>
         </Reveal>
 
+        {/* ── STORY + CODING ──────────────────────────────────── */}
+        <Reveal delay={0.05}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+            {[
+              {
+                label: "The story",
+                text: "Grew up in Málaga, went to a French school. Moved to England at seven — English became part of me. Madrid at twelve. A few months in Paris. Now Dublin for CS.",
+              },
+              {
+                label: "How coding started",
+                text: "First computer I just wanted to know what it could do. Python at twelve. Then HTML, then everything else. My only advice: just fidget with it.",
+              },
+            ].map(({ label, text }) => (
+              <div key={label} style={{
+                padding: "22px 24px",
+                background: "rgba(255,253,248,0.84)", backdropFilter: "blur(14px)",
+                borderRadius: 16, border: "1px solid rgba(210,150,50,0.14)",
+              }}>
+                <div style={{ fontSize: 9, fontFamily: "monospace", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(170,95,20,0.5)", marginBottom: 10 }}>{label}</div>
+                <p style={{ fontSize: 14, lineHeight: 1.78, color: "#5a4030", margin: 0 }}>{text}</p>
+              </div>
+            ))}
+          </div>
+        </Reveal>
+
+        {/* ── OUTSIDE CODE ────────────────────────────────────── */}
+        <Reveal delay={0.04}>
+          <div style={{
+            display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14,
+          }}>
+            <div style={{
+              padding: "22px 24px",
+              background: "rgba(255,253,248,0.84)", backdropFilter: "blur(14px)",
+              borderRadius: 16, border: "1px solid rgba(210,150,50,0.14)",
+            }}>
+              <div style={{ fontSize: 9, fontFamily: "monospace", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(170,95,20,0.5)", marginBottom: 12 }}>Outside code</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+                {["Tennis daily", "Gym daily", "Piano", "Guitar", "Ukulele", "Drums"].map(t => (
+                  <span key={t} style={{
+                    fontSize: 11, padding: "4px 11px", borderRadius: 20,
+                    background: "rgba(215,145,40,0.1)", border: "1px solid rgba(210,150,50,0.2)",
+                    color: "#5a4020",
+                  }}>{t}</span>
+                ))}
+              </div>
+              <p style={{ fontSize: 13, lineHeight: 1.75, color: "#7a6248", margin: 0 }}>
+                Tennis I would play every day for the rest of my life. I compose too, have my own music made with software. Both music and code are about building something from nothing.
+              </p>
+            </div>
+            <Photo alt="Life" style={{ minHeight: 220 }} />
+          </div>
+        </Reveal>
+
+        {/* ── AI TAKE — dark card ──────────────────────────────── */}
+        <Reveal delay={0.04}>
+          <div style={{
+            padding: "26px 28px", marginBottom: 14,
+            background: "rgba(18,10,3,0.87)", backdropFilter: "blur(18px)",
+            borderRadius: 18, border: "1px solid rgba(220,140,40,0.14)",
+          }}>
+            <div style={{ fontSize: 9, fontFamily: "monospace", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(220,140,40,0.45)", marginBottom: 12 }}>
+              An honest take
+            </div>
+            <p style={{ fontSize: 15, lineHeight: 1.76, color: "rgba(248,242,232,0.72)", margin: 0 }}>
+              AI is just the next layer of abstraction. Assembly, then C, then Python, now this. We adapt and go further. What I actually think: in a few years websites won't be browsed by people. They will be endpoints for AI agents. No hero sections, no animations. Just structure and speed. I find that exciting.
+            </p>
+          </div>
+        </Reveal>
+
+        {/* ── PITCH CTA ───────────────────────────────────────── */}
+        <Reveal delay={0.04}>
+          <div style={{
+            padding: "28px 30px", marginBottom: 14,
+            background: "linear-gradient(135deg, rgba(205,125,30,0.13) 0%, rgba(220,165,45,0.07) 100%)",
+            backdropFilter: "blur(14px)",
+            borderRadius: 20,
+            border: "1px solid rgba(205,125,30,0.28)",
+          }}>
+            <div style={{ fontSize: 9, fontFamily: "monospace", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(170,95,20,0.55)", marginBottom: 10 }}>The adventure</div>
+            <h2 style={{
+              fontFamily: "var(--font-instrument)", fontSize: "clamp(1.35rem, 4vw, 1.8rem)",
+              lineHeight: 1.2, letterSpacing: "-0.015em", color: "#1a1008",
+              margin: "0 0 12px", fontWeight: 400,
+            }}>
+              Building Pitch. Join if you want.
+            </h2>
+            <p style={{ fontSize: 14, lineHeight: 1.75, color: "#5a4020", marginBottom: 20 }}>
+              A networking platform for founders and investors. Something premium that people actually need. If you want to help build it, reach out. No formalities.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {[
+                { label: "Email", value: "eugeniobrb@icloud.com", href: "mailto:eugeniobrb@icloud.com" },
+                { label: "WhatsApp", value: "+34 697 476 663", href: "https://wa.me/34697476663" },
+              ].map(({ label, value, href }) => (
+                <a key={label} href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
+                  style={{
+                    display: "flex", flexDirection: "column", gap: 5,
+                    padding: "14px 16px", borderRadius: 12, textDecoration: "none",
+                    background: "rgba(255,253,248,0.78)", border: "1px solid rgba(205,145,45,0.22)",
+                    transition: "border-color 0.18s, background 0.18s",
+                  }}
+                  onMouseEnter={e => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.borderColor = "rgba(205,125,30,0.5)";
+                    el.style.background = "rgba(255,253,248,0.95)";
+                  }}
+                  onMouseLeave={e => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.borderColor = "rgba(205,145,45,0.22)";
+                    el.style.background = "rgba(255,253,248,0.78)";
+                  }}
+                >
+                  <span style={{ fontSize: 9, fontFamily: "monospace", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(160,90,20,0.5)" }}>{label}</span>
+                  <span style={{ fontSize: 12, fontFamily: "monospace", color: "#3a2808" }}>{value}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        </Reveal>
+
+        {/* ── SIGN OFF ────────────────────────────────────────── */}
+        <Reveal delay={0.04}>
+          <div style={{
+            textAlign: "center", paddingTop: 36, marginTop: 12,
+            borderTop: "1px solid rgba(205,145,45,0.14)",
+          }}>
+            <p style={{
+              fontFamily: "var(--font-instrument)", fontSize: "1.15rem",
+              color: "rgba(90,64,32,0.5)", fontStyle: "italic", margin: "0 0 8px",
+            }}>
+              "Thanks for coming this far."
+            </p>
+            <p style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(160,100,30,0.4)", marginBottom: 24 }}>
+              — Eugenio
+            </p>
+            <Link href="/" style={{
+              fontSize: 11, fontFamily: "monospace", letterSpacing: "0.06em",
+              color: "rgba(160,100,30,0.45)", textDecoration: "none",
+            }}>
+              ← back to the portfolio
+            </Link>
+          </div>
+        </Reveal>
+
       </div>
-    </main>
+    </div>
   );
 }
