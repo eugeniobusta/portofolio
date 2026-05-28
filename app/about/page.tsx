@@ -46,12 +46,14 @@ function Photo({ src, alt, style = {} }: {
 
 /* ─── SUN ────────────────────────────────────────────────────────── */
 function Sun({ sp }: { sp: MotionValue<number> }) {
-  const rawY = useTransform(sp, [0, 1], [11, 73]);
-  const y    = useSpring(rawY, { stiffness: 26, damping: 18 });
-  const top  = useTransform(y, v => `${v}vh`);
+  const rawY     = useTransform(sp, [0, 1], [11, 73]);
+  const y        = useSpring(rawY, { stiffness: 26, damping: 18 });
+  const top      = useTransform(y, v => `${v}vh`);
   const opacity  = useTransform(sp, [0, 0.52, 0.76, 0.90, 1], [1, 1, 0.68, 0.08, 0]);
   const haloSize = useTransform(sp, [0, 0.75], [200, 350]);
   const haloPx   = useTransform(haloSize, v => `${v}px`);
+  // sun deepens to red/crimson as it sinks
+  const redTint  = useTransform(sp, [0.18, 0.68], [0, 0.72]);
 
   return (
     <motion.div style={{
@@ -59,7 +61,7 @@ function Sun({ sp }: { sp: MotionValue<number> }) {
       translateX: "-50%", translateY: "-50%",
       opacity, pointerEvents: "none", zIndex: 2,
     }}>
-      {/* spinning atmospheric halo — rotates while scrolling or idle */}
+      {/* spinning atmospheric halo */}
       <motion.div
         animate={{ rotate: 360 }}
         transition={{ duration: 90, repeat: Infinity, ease: "linear" }}
@@ -85,12 +87,20 @@ function Sun({ sp }: { sp: MotionValue<number> }) {
       <motion.div
         animate={{ scale: [1, 1.04, 1] }}
         transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
-        style={{
-          width: 84, height: 84, borderRadius: "50%",
+        style={{ position: "relative", width: 84, height: 84 }}
+      >
+        <div style={{
+          position: "absolute", inset: 0, borderRadius: "50%",
           background: "radial-gradient(circle at 36% 33%, #fffce0 0%, #ffe050 28%, #ffaa22 58%, #e06412 100%)",
           boxShadow: "0 0 32px rgba(255,178,35,0.78), 0 0 72px rgba(255,125,20,0.40), 0 0 140px rgba(255,80,5,0.18)",
-        }}
-      />
+        }} />
+        {/* red sunset tint on the disk */}
+        <motion.div style={{
+          position: "absolute", inset: 0, borderRadius: "50%",
+          background: "radial-gradient(circle at 50% 60%, rgba(200,30,0,0.55) 0%, rgba(160,20,0,0.35) 55%, transparent 80%)",
+          opacity: redTint,
+        }} />
+      </motion.div>
     </motion.div>
   );
 }
@@ -108,7 +118,6 @@ function SunReflection({ sp }: { sp: MotionValue<number> }) {
       filter: "blur(10px)",
       borderRadius: "0 0 50% 50%",
     }}>
-      {/* shimmer bands */}
       {[0, 1, 2].map(i => (
         <motion.div key={i}
           animate={{ scaleX: [0.4, 1.2, 0.4], opacity: [0.6, 1, 0.6] }}
@@ -133,7 +142,7 @@ function Cloud({ sp, topPct, leftPct, speed, size = 1 }: {
 }) {
   const rawX = useTransform(sp, [0, 1], [0, -110 * speed]);
   const x    = useSpring(rawX, { stiffness: 20, damping: 18 });
-  const fade = useTransform(sp, [0.50, 0.80], [0.86, 0]);
+  const fade = useTransform(sp, [0.48, 0.75], [0.86, 0]);
   const W = 175 * size, H = 62 * size;
 
   return (
@@ -172,15 +181,16 @@ function Cloud({ sp, topPct, leftPct, speed, size = 1 }: {
 }
 
 /* ─── SEAGULL ────────────────────────────────────────────────────── */
-function Seagull({ top, left, scale = 1, delay = 0 }: {
-  top: string; left: string; scale?: number; delay?: number;
+function Seagull({ top, left, scale = 1, delay = 0, sp }: {
+  top: string; left: string; scale?: number; delay?: number; sp: MotionValue<number>;
 }) {
+  const fade = useTransform(sp, [0.42, 0.68], [0.46, 0]);
   return (
     <motion.svg viewBox="0 0 40 20"
       style={{
         position: "absolute", top, left, overflow: "visible",
         width: 40 * scale, height: 20 * scale,
-        opacity: 0.46, pointerEvents: "none", zIndex: 3,
+        opacity: fade, pointerEvents: "none", zIndex: 3,
       }}
       animate={{ y: [0, -8, 0], x: [0, 11, 0] }}
       transition={{ duration: 6.5 + delay, repeat: Infinity, ease: "easeInOut", delay }}
@@ -200,6 +210,9 @@ function Seagull({ top, left, scale = 1, delay = 0 }: {
 /* ─── WAVES ──────────────────────────────────────────────────────── */
 function WaveLayer({ sp }: { sp: MotionValue<number> }) {
   const rise = useTransform(sp, [0.35, 1], ["0%", "-9%"]);
+  // wave color deepens to dark at night
+  const waveDeep = useTransform(sp, [0.60, 0.92], [0, 1]);
+
   return (
     <motion.div style={{
       position: "absolute", bottom: 0, left: 0, right: 0,
@@ -210,6 +223,12 @@ function WaveLayer({ sp }: { sp: MotionValue<number> }) {
         position: "absolute", inset: 0,
         background: "linear-gradient(180deg, transparent 0%, rgba(200,100,18,0.20) 28%, rgba(168,68,12,0.36) 68%, rgba(138,52,8,0.50) 100%)",
       }} />
+      {/* night water darkening */}
+      <motion.div style={{
+        position: "absolute", inset: 0, opacity: waveDeep,
+        background: "linear-gradient(180deg, transparent 0%, rgba(4,6,22,0.55) 35%, rgba(3,5,18,0.72) 100%)",
+      }} />
+
       {/* wave 1 */}
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 70, overflow: "hidden" }}>
         <motion.div style={{ display: "flex", position: "absolute", top: 0 }}
@@ -223,7 +242,7 @@ function WaveLayer({ sp }: { sp: MotionValue<number> }) {
           ))}
         </motion.div>
       </div>
-      {/* wave 2 — faster, offset */}
+      {/* wave 2 */}
       <div style={{ position: "absolute", top: 14, left: 0, right: 0, height: 62, overflow: "hidden" }}>
         <motion.div style={{ display: "flex", position: "absolute", top: 0 }}
           animate={{ x: ["-25%", "-75%"] }}
@@ -236,13 +255,11 @@ function WaveLayer({ sp }: { sp: MotionValue<number> }) {
           ))}
         </motion.div>
       </div>
-      {/* sun shimmer on water */}
       <motion.div
         animate={{ opacity: [0.45, 0.85, 0.45], scaleX: [0.8, 1.1, 0.8] }}
         transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
         style={{
-          position: "absolute", top: "28%", left: "50%",
-          translateX: "-50%",
+          position: "absolute", top: "28%", left: "50%", translateX: "-50%",
           width: 100, height: 18,
           background: "rgba(255,205,70,0.38)",
           filter: "blur(8px)", borderRadius: 12,
@@ -278,13 +295,41 @@ function Palm({ side }: { side: "left" | "right" }) {
   );
 }
 
-/* ─── STARS (appear as sun sets) ─────────────────────────────────── */
+/* ─── DUSK LAYERS ────────────────────────────────────────────────── */
+/* Three-phase sky: golden hour → twilight purple → full night */
+function DuskLayers({ sp }: { sp: MotionValue<number> }) {
+  const goldenOp   = useTransform(sp, [0.12, 0.42, 0.68], [0, 1, 0]);
+  const twilightOp = useTransform(sp, [0.40, 0.68], [0, 1]);
+  const nightOp    = useTransform(sp, [0.63, 0.90], [0, 1]);
+
+  return (
+    <>
+      {/* golden hour — deep orange bleeding up from horizon */}
+      <motion.div style={{
+        position: "absolute", inset: 0, opacity: goldenOp, pointerEvents: "none", zIndex: 1,
+        background: "linear-gradient(180deg, rgba(255,165,80,0) 0%, rgba(255,125,38,0.22) 38%, rgba(230,78,12,0.58) 74%, rgba(195,48,4,0.52) 100%)",
+      }} />
+      {/* twilight — purple and indigo pour in from the top */}
+      <motion.div style={{
+        position: "absolute", inset: 0, opacity: twilightOp, pointerEvents: "none", zIndex: 1,
+        background: "linear-gradient(180deg, rgba(62,18,90,0.74) 0%, rgba(122,30,78,0.48) 30%, rgba(185,60,18,0.22) 62%, transparent 82%)",
+      }} />
+      {/* full night — deep blue-black blanket */}
+      <motion.div style={{
+        position: "absolute", inset: 0, opacity: nightOp, pointerEvents: "none", zIndex: 1,
+        background: "linear-gradient(180deg, rgba(4,4,22,0.94) 0%, rgba(8,6,26,0.91) 44%, rgba(12,7,21,0.78) 78%, rgba(18,8,15,0.58) 100%)",
+      }} />
+    </>
+  );
+}
+
+/* ─── STARS ──────────────────────────────────────────────────────── */
 function Stars({ sp }: { sp: MotionValue<number> }) {
-  const opacity = useTransform(sp, [0.62, 0.94], [0, 1]);
+  const opacity = useTransform(sp, [0.60, 0.90], [0, 1]);
   const dots = useMemo(() =>
-    Array.from({ length: 28 }, (_, i) => ({
+    Array.from({ length: 32 }, (_, i) => ({
       x: (i * 137 % 94) + 3,
-      y: (i * 97  % 54) + 3,
+      y: (i * 97  % 54) + 2,
       r: (i % 3) * 0.5 + 0.6,
       d: (i % 7) * 0.35,
     })),
@@ -309,14 +354,126 @@ function Stars({ sp }: { sp: MotionValue<number> }) {
   );
 }
 
-/* ─── SUNSET DEEPENING OVERLAY ───────────────────────────────────── */
-function SunsetDeep({ sp }: { sp: MotionValue<number> }) {
-  const opacity = useTransform(sp, [0.28, 0.88], [0, 1]);
+/* ─── CITY LIGHTS ────────────────────────────────────────────────── */
+function CityLights({ sp }: { sp: MotionValue<number> }) {
+  const opacity = useTransform(sp, [0.56, 0.82], [0, 1]);
+
+  // Deterministic skyline SVG path
+  const skylinePath = useMemo(() => {
+    let seed = 54321;
+    const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+    const W = 1440, H = 60;
+    let p = `M0,${H}`;
+    let x = 0;
+    while (x < W) {
+      const bw = Math.round(rand() * 26) + 9;
+      const bh = Math.round(rand() * 42) + 10;
+      p += ` L${x},${H - bh} L${Math.min(x + bw, W)},${H - bh}`;
+      x += bw;
+      if (rand() > 0.82 && x < W - 8) {
+        const gap = Math.round(rand() * 4) + 1;
+        p += ` L${x},${H} L${x + gap},${H}`;
+        x += gap;
+      }
+    }
+    p += ` L${W},${H} Z`;
+    return p;
+  }, []);
+
+  // Deterministic window lights
+  const windows = useMemo(() => {
+    let seed = 98765;
+    const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 0xffffffff; };
+    return Array.from({ length: 58 }, (_, i) => {
+      const x = rand() * 97 + 1.5;
+      const y = rand() * 62 + 14; // % from bottom, inside building band
+      const warm = i % 5 === 0;
+      const cool = i % 7 === 0;
+      const c = cool
+        ? "rgba(175,215,255,0.95)"
+        : warm ? "rgba(255,255,195,0.92)"
+        : "rgba(255,210,110,0.88)";
+      return { x, y, c, d: rand() * 2.8 };
+    });
+  }, []);
+
   return (
     <motion.div style={{
-      position: "absolute", inset: 0, opacity, zIndex: 1, pointerEvents: "none",
-      background: "linear-gradient(180deg, rgba(95,28,4,0.32) 0%, rgba(155,48,6,0.40) 38%, rgba(115,28,4,0.52) 72%, rgba(38,8,1,0.68) 100%)",
-    }} />
+      position: "absolute", top: "57%", left: 0, right: 0,
+      height: "13%", opacity, pointerEvents: "none", zIndex: 5,
+    }}>
+      {/* city light pollution haze */}
+      <div style={{
+        position: "absolute", bottom: "46%", left: 0, right: 0, height: 32,
+        background: "linear-gradient(180deg, transparent, rgba(255,160,55,0.16), rgba(255,130,35,0.09), transparent)",
+        filter: "blur(12px)",
+      }} />
+
+      {/* building silhouettes */}
+      <svg viewBox="0 0 1440 60" preserveAspectRatio="none"
+        style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "100%" }}>
+        <path d={skylinePath} fill="rgba(4,2,14,0.92)" />
+      </svg>
+
+      {/* window lights */}
+      {windows.map((w, i) => (
+        <motion.div key={i}
+          animate={{ opacity: [0.65, 1, 0.65] }}
+          transition={{ duration: 2.4 + w.d, repeat: Infinity, ease: "easeInOut", delay: w.d }}
+          style={{
+            position: "absolute",
+            left: `${w.x}%`,
+            bottom: `${w.y * 0.55}%`,
+            width: 3, height: 3,
+            background: w.c,
+            borderRadius: 0.5,
+            boxShadow: `0 0 6px ${w.c}, 0 0 10px ${w.c}`,
+          }}
+        />
+      ))}
+
+      {/* reflection in water below */}
+      <div style={{
+        position: "absolute", top: "98%", left: "10%", right: "10%", height: 24,
+        background: "linear-gradient(180deg, rgba(255,165,55,0.14), transparent)",
+        filter: "blur(14px)",
+      }} />
+    </motion.div>
+  );
+}
+
+/* ─── MOON ───────────────────────────────────────────────────────── */
+function Moon({ sp }: { sp: MotionValue<number> }) {
+  const opacity = useTransform(sp, [0.70, 0.90], [0, 1]);
+  return (
+    <motion.div style={{
+      position: "absolute", top: "8%", right: "12%",
+      opacity, pointerEvents: "none", zIndex: 2,
+    }}>
+      <motion.div
+        animate={{ scale: [1, 1.025, 1] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        style={{ position: "relative", width: 46, height: 46 }}
+      >
+        {/* glow */}
+        <div style={{
+          position: "absolute", inset: -20, borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(220,235,255,0.22) 0%, transparent 70%)",
+          filter: "blur(10px)",
+        }} />
+        {/* disk */}
+        <div style={{
+          position: "absolute", inset: 0, borderRadius: "50%",
+          background: "radial-gradient(circle at 38% 35%, #f8f4e8 0%, #e8e0c8 55%, #c8c0a8 100%)",
+          boxShadow: "0 0 18px rgba(200,215,255,0.55), 0 0 40px rgba(200,215,255,0.22)",
+        }} />
+        {/* crescent shadow */}
+        <div style={{
+          position: "absolute", inset: 0, borderRadius: "50%",
+          background: "radial-gradient(circle at 68% 38%, rgba(4,4,22,0.72) 28%, transparent 62%)",
+        }} />
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -330,14 +487,15 @@ export default function AboutPage() {
       {/* ══ FIXED BACKGROUND ═══════════════════════════════════════ */}
       <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden" }}>
 
-        {/* base sky */}
+        {/* base sky — warm cream-to-amber */}
         <div style={{
           position: "absolute", inset: 0,
           background: "linear-gradient(180deg, #f7f3ec 0%, #fdefd2 35%, #fcd993 57%, #f4a94c 76%, #de7722 91%, #b65616 100%)",
         }} />
 
-        <SunsetDeep sp={scrollYProgress} />
+        <DuskLayers sp={scrollYProgress} />
         <Stars       sp={scrollYProgress} />
+        <Moon        sp={scrollYProgress} />
         <Sun         sp={scrollYProgress} />
         <SunReflection sp={scrollYProgress} />
 
@@ -345,15 +503,16 @@ export default function AboutPage() {
         <Cloud sp={scrollYProgress} topPct={18} leftPct={55} speed={1.0} size={0.8} />
         <Cloud sp={scrollYProgress} topPct={28} leftPct={22} speed={0.5} size={0.95} />
 
-        <Seagull top="14%"  left="28%" scale={0.9} delay={0}   />
-        <Seagull top="20%"  left="62%" scale={0.7} delay={1.2} />
-        <Seagull top="10%"  left="75%" scale={1.0} delay={0.5} />
-        <Seagull top="25%"  left="42%" scale={0.75} delay={2.1} />
+        <Seagull sp={scrollYProgress} top="14%"  left="28%" scale={0.9} delay={0}   />
+        <Seagull sp={scrollYProgress} top="20%"  left="62%" scale={0.7} delay={1.2} />
+        <Seagull sp={scrollYProgress} top="10%"  left="75%" scale={1.0} delay={0.5} />
+        <Seagull sp={scrollYProgress} top="25%"  left="42%" scale={0.75} delay={2.1} />
 
         <Palm side="left"  />
         <Palm side="right" />
 
-        <WaveLayer sp={scrollYProgress} />
+        <CityLights sp={scrollYProgress} />
+        <WaveLayer  sp={scrollYProgress} />
       </div>
 
       {/* ══ ENTRANCE fade from orange portal ══════════════════════ */}
