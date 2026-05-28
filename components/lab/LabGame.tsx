@@ -727,9 +727,11 @@ const DOG_TRIGGER_R = 3.5;
 function DogHouse({
   carPosRef,
   onEnter,
+  screenRef,
 }: {
   carPosRef: React.MutableRefObject<THREE.Vector3>;
   onEnter: () => void;
+  screenRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const enteredRef  = useRef(false);
   const glowRef     = useRef<THREE.PointLight>(null!);
@@ -786,15 +788,22 @@ function DogHouse({
   useFrame(() => {
     const dx = carPosRef.current.x - DOG_POS[0];
     const dz = carPosRef.current.z - DOG_POS[2];
-    const dist2 = dx * dx + dz * dz;
+    const dist = Math.sqrt(dx * dx + dz * dz);
 
-    /* proximity glow: starts at dist 22, peaks at 0 */
+    /* 3D proximity glow — starts at dist 28, intensifies quadratically */
     if (glowRef.current) {
-      const t = Math.max(0, 1 - Math.sqrt(dist2) / 22);
-      glowRef.current.intensity = t * t * 18;
+      const t = Math.max(0, 1 - dist / 28);
+      glowRef.current.intensity = t * t * t * 48;
+      glowRef.current.distance  = 15 + t * 45;
     }
 
-    if (!enteredRef.current && dist2 < DOG_TRIGGER_R * DOG_TRIGGER_R) {
+    /* screen overlay — ambient orange vignette builds from dist 18 */
+    if (screenRef.current && !enteredRef.current) {
+      const st = Math.max(0, 1 - dist / 18);
+      screenRef.current.style.opacity = String(st * 0.45);
+    }
+
+    if (!enteredRef.current && dist < DOG_TRIGGER_R) {
       enteredRef.current = true;
       onEnter();
     }
@@ -840,7 +849,7 @@ function DogHouse({
       </group>
 
       {/* proximity glow that swells as car approaches */}
-      <pointLight ref={glowRef} position={DOG_POS} color="#ff8822" distance={28} decay={1.4} intensity={0} />
+      <pointLight ref={glowRef} position={DOG_POS} color="#ff8822" distance={15} decay={1.2} intensity={0} />
 
       {/* sign — group rotated so poles + board face toward center; rotation.y=-π/4 keeps UV correct */}
       {signTex && (
@@ -872,112 +881,174 @@ function DogHouse({
 }
 
 /* ─── City life (right side) ─────────────────────────────────── */
-const PERSON_DEFS = [
-  { base: [20, 0,  5] as [number,number,number], r: 2.4, spd:  0.65, phase: 0.0, shirt: "#4488cc" },
-  { base: [28, 0, 12] as [number,number,number], r: 1.8, spd: -0.50, phase: 2.1, shirt: "#cc4444" },
-  { base: [22, 0, 20] as [number,number,number], r: 2.0, spd:  0.82, phase: 1.0, shirt: "#44aa66" },
-  { base: [35, 0,  8] as [number,number,number], r: 1.5, spd: -0.58, phase: 3.2, shirt: "#aa8844" },
-  { base: [30, 0, 26] as [number,number,number], r: 1.9, spd:  0.74, phase: 0.5, shirt: "#8844cc" },
-  { base: [18, 0, 14] as [number,number,number], r: 1.6, spd: -0.68, phase: 1.7, shirt: "#cc8822" },
-  { base: [25, 0, -3] as [number,number,number], r: 1.4, spd:  0.55, phase: 2.6, shirt: "#228888" },
-  { base: [38, 0, 19] as [number,number,number], r: 1.7, spd: -0.48, phase: 0.9, shirt: "#994422" },
+type PersonDef  = { from: [number,number,number]; to: [number,number,number]; spd: number; phase: number; shirt: string };
+type NPCCarDef  = { from: [number,number,number]; to: [number,number,number]; spd: number; phase: number; color: string };
+
+const PERSON_DEFS: PersonDef[] = [
+  { from: [14, 0, 13], to: [36, 0, 13], spd: 3.2, phase: 0.0, shirt: "#4488cc" },
+  { from: [36, 0, 17], to: [14, 0, 17], spd: 3.5, phase: 0.5, shirt: "#cc4444" },
+  { from: [3,  0,  8], to: [3,  0, 30], spd: 3.0, phase: 0.3, shirt: "#44aa66" },
+  { from: [5,  0, 30], to: [5,  0,  8], spd: 3.3, phase: 0.7, shirt: "#aa8844" },
+  { from: [14, 0, 33], to: [34, 0, 33], spd: 3.1, phase: 0.0, shirt: "#8844cc" },
+  { from: [34, 0, 37], to: [14, 0, 37], spd: 3.4, phase: 0.4, shirt: "#cc8822" },
+  { from: [22, 0,  5], to: [22, 0, 25], spd: 2.9, phase: 0.2, shirt: "#228888" },
+  { from: [28, 0, 25], to: [28, 0,  5], spd: 3.2, phase: 0.6, shirt: "#994422" },
 ];
 
-const NPC_CAR_DEFS = [
-  { center: [28, 0, 10] as [number,number,number], r:  8, spd: 0.30, phase: 0.0,     color: "#5566cc" },
-  { center: [22, 0, 24] as [number,number,number], r:  6, spd: -0.24, phase: Math.PI, color: "#cc5544" },
-  { center: [33, 0, 18] as [number,number,number], r:  5, spd: 0.20, phase: 1.5,     color: "#44aa88" },
+const NPC_CAR_DEFS: NPCCarDef[] = [
+  { from: [-2, 0, -38], to: [-2, 0, 44],  spd: 11, phase: 0.2, color: "#5566cc" },
+  { from: [ 2, 0,  44], to: [ 2, 0, -38], spd: 13, phase: 0.6, color: "#cc5544" },
+  { from: [32, 0,  13], to: [ 4, 0,  13], spd: 10, phase: 0.0, color: "#44aa88" },
 ];
 
-function Person({ base, r, spd, phase, shirt }: typeof PERSON_DEFS[number]) {
-  const grp  = useRef<THREE.Group>(null!);
-  const lLeg = useRef<THREE.Mesh>(null!);
-  const rLeg = useRef<THREE.Mesh>(null!);
-  const lArm = useRef<THREE.Mesh>(null!);
-  const rArm = useRef<THREE.Mesh>(null!);
-  const t    = useRef(phase);
+function Person({ from, to, spd, phase, shirt }: PersonDef) {
+  const grp     = useRef<THREE.Group>(null!);
+  const lLegGrp = useRef<THREE.Group>(null!);
+  const rLegGrp = useRef<THREE.Group>(null!);
+  const lArmGrp = useRef<THREE.Group>(null!);
+  const rArmGrp = useRef<THREE.Group>(null!);
+  const walkT   = useRef(0);
+
+  /* initial position along the path */
+  const posX = useRef(from[0] + (to[0] - from[0]) * phase);
+  const posZ = useRef(from[2] + (to[2] - from[2]) * phase);
+  /* 1 = heading toward `to`, -1 = heading toward `from` */
+  const dir  = useRef(phase < 0.5 ? 1 : -1);
 
   useFrame((_, dt) => {
-    t.current += dt * spd;
-    const tc = t.current;
-    if (grp.current) {
-      grp.current.position.x = base[0] + Math.cos(tc) * r;
-      grp.current.position.z = base[2] + Math.sin(tc) * r;
-      grp.current.position.y = 0;
-      grp.current.rotation.y = -(tc + Math.PI / 2) * Math.sign(spd);
+    const tx = dir.current === 1 ? to[0] : from[0];
+    const tz = dir.current === 1 ? to[2] : from[2];
+    const dx = tx - posX.current;
+    const dz = tz - posZ.current;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+
+    if (dist < 0.4) {
+      dir.current *= -1;
+    } else {
+      const nx = dx / dist;
+      const nz = dz / dist;
+      posX.current += nx * spd * dt;
+      posZ.current += nz * spd * dt;
+      if (grp.current) grp.current.rotation.y = Math.atan2(nx, nz);
     }
-    const swing = Math.sin(tc * 5) * 0.22;
-    if (lLeg.current) lLeg.current.rotation.x =  swing;
-    if (rLeg.current) rLeg.current.rotation.x = -swing;
-    if (lArm.current) lArm.current.rotation.x = -swing * 0.7;
-    if (rArm.current) rArm.current.rotation.x =  swing * 0.7;
+
+    if (grp.current) {
+      grp.current.position.set(posX.current, 0, posZ.current);
+    }
+
+    walkT.current += dt * spd * 1.8;
+    const swing = Math.sin(walkT.current * 3.5) * 0.55;
+    if (lLegGrp.current) lLegGrp.current.rotation.x =  swing;
+    if (rLegGrp.current) rLegGrp.current.rotation.x = -swing;
+    if (lArmGrp.current) lArmGrp.current.rotation.x = -swing * 0.6;
+    if (rArmGrp.current) rArmGrp.current.rotation.x =  swing * 0.6;
   });
 
+  /* person is roughly 1.9 units tall — similar scale to player car width */
   return (
     <group ref={grp}>
       {/* torso */}
-      <mesh position={[0, 0.34, 0]}>
-        <boxGeometry args={[0.14, 0.26, 0.09]} />
+      <mesh position={[0, 1.12, 0]} castShadow>
+        <boxGeometry args={[0.50, 0.85, 0.32]} />
         <meshStandardMaterial color={shirt} roughness={0.75} />
       </mesh>
       {/* head */}
-      <mesh position={[0, 0.58, 0]}>
-        <boxGeometry args={[0.11, 0.12, 0.10]} />
+      <mesh position={[0, 1.80, 0]} castShadow>
+        <boxGeometry args={[0.38, 0.40, 0.34]} />
         <meshStandardMaterial color="#f0c080" roughness={0.65} />
       </mesh>
-      {/* legs */}
-      <mesh ref={lLeg} position={[-0.04, 0.12, 0]}>
-        <boxGeometry args={[0.055, 0.20, 0.065]} />
-        <meshStandardMaterial color="#2a2a2a" roughness={0.85} />
-      </mesh>
-      <mesh ref={rLeg} position={[0.04, 0.12, 0]}>
-        <boxGeometry args={[0.055, 0.20, 0.065]} />
-        <meshStandardMaterial color="#2a2a2a" roughness={0.85} />
-      </mesh>
-      {/* arms */}
-      <mesh ref={lArm} position={[-0.10, 0.32, 0]}>
-        <boxGeometry args={[0.045, 0.18, 0.055]} />
-        <meshStandardMaterial color={shirt} roughness={0.75} />
-      </mesh>
-      <mesh ref={rArm} position={[0.10, 0.32, 0]}>
-        <boxGeometry args={[0.045, 0.18, 0.055]} />
-        <meshStandardMaterial color={shirt} roughness={0.75} />
-      </mesh>
+      {/* left leg — pivot at hip (y=0.75) */}
+      <group ref={lLegGrp} position={[-0.14, 0.75, 0]}>
+        <mesh position={[0, -0.37, 0]} castShadow>
+          <boxGeometry args={[0.20, 0.75, 0.22]} />
+          <meshStandardMaterial color="#2a2a2a" roughness={0.85} />
+        </mesh>
+      </group>
+      {/* right leg — pivot at hip */}
+      <group ref={rLegGrp} position={[0.14, 0.75, 0]}>
+        <mesh position={[0, -0.37, 0]} castShadow>
+          <boxGeometry args={[0.20, 0.75, 0.22]} />
+          <meshStandardMaterial color="#2a2a2a" roughness={0.85} />
+        </mesh>
+      </group>
+      {/* left arm — pivot at shoulder (y=1.54) */}
+      <group ref={lArmGrp} position={[-0.35, 1.54, 0]}>
+        <mesh position={[0, -0.32, 0]} castShadow>
+          <boxGeometry args={[0.17, 0.65, 0.18]} />
+          <meshStandardMaterial color={shirt} roughness={0.75} />
+        </mesh>
+      </group>
+      {/* right arm — pivot at shoulder */}
+      <group ref={rArmGrp} position={[0.35, 1.54, 0]}>
+        <mesh position={[0, -0.32, 0]} castShadow>
+          <boxGeometry args={[0.17, 0.65, 0.18]} />
+          <meshStandardMaterial color={shirt} roughness={0.75} />
+        </mesh>
+      </group>
     </group>
   );
 }
 
-function NPCCar({ center, r, spd, phase, color }: typeof NPC_CAR_DEFS[number]) {
-  const ref = useRef<THREE.Group>(null!);
-  const t   = useRef(phase);
+function NPCCar({ from, to, spd, phase, color }: NPCCarDef) {
+  const ref  = useRef<THREE.Group>(null!);
+  const posX = useRef(from[0] + (to[0] - from[0]) * phase);
+  const posZ = useRef(from[2] + (to[2] - from[2]) * phase);
+  const dir  = useRef(phase < 0.5 ? 1 : -1);
 
   useFrame((_, dt) => {
-    t.current += dt * spd;
-    const tc = t.current;
+    const tx = dir.current === 1 ? to[0] : from[0];
+    const tz = dir.current === 1 ? to[2] : from[2];
+    const dx = tx - posX.current;
+    const dz = tz - posZ.current;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+
+    if (dist < 1.0) {
+      dir.current *= -1;
+    } else {
+      const nx = dx / dist;
+      const nz = dz / dist;
+      posX.current += nx * spd * dt;
+      posZ.current += nz * spd * dt;
+      if (ref.current) {
+        ref.current.rotation.y = Math.atan2(nx, nz);
+      }
+    }
+
     if (ref.current) {
-      ref.current.position.x = center[0] + Math.cos(tc) * r;
-      ref.current.position.y = 0.18;
-      ref.current.position.z = center[2] + Math.sin(tc) * r;
-      ref.current.rotation.y = -(tc + (spd > 0 ? Math.PI / 2 : -Math.PI / 2));
+      const groundY = sampleH(posX.current, posZ.current);
+      ref.current.position.set(posX.current, groundY + 0.26, posZ.current);
     }
   });
 
+  /* same scale as the player jeep body */
   return (
     <group ref={ref}>
-      <mesh position={[0, 0.14, 0]} castShadow>
-        <boxGeometry args={[0.68, 0.26, 1.35]} />
-        <meshStandardMaterial color={color} roughness={0.52} />
-      </mesh>
-      <mesh position={[0, 0.32, -0.08]} castShadow>
-        <boxGeometry args={[0.58, 0.21, 0.72]} />
-        <meshStandardMaterial color="#1a1a28" roughness={0.72} />
-      </mesh>
-      {([-0.21, 0.21] as number[]).map((x, i) => (
-        <mesh key={i} position={[x, 0.13, 0.68]}>
-          <boxGeometry args={[0.11, 0.07, 0.03]} />
-          <meshStandardMaterial color="#fffff0" emissive="#fffde0" emissiveIntensity={2.2} />
+      <group scale={0.88}>
+        {/* body */}
+        <mesh position={[0, 0.38, 0]} castShadow>
+          <boxGeometry args={[1.4, 0.42, 2.2]} />
+          <meshStandardMaterial color={color} roughness={0.52} metalness={0.18} />
         </mesh>
-      ))}
+        {/* cabin */}
+        <mesh position={[0, 0.80, -0.06]} castShadow>
+          <boxGeometry args={[1.22, 0.50, 1.28]} />
+          <meshStandardMaterial color="#1a1a28" roughness={0.72} />
+        </mesh>
+        {/* headlights */}
+        {([-0.42, 0.42] as number[]).map((x, i) => (
+          <mesh key={i} position={[x, 0.40, 1.12]}>
+            <boxGeometry args={[0.26, 0.15, 0.04]} />
+            <meshStandardMaterial color="#fffff0" emissive="#fffde0" emissiveIntensity={2.2} />
+          </mesh>
+        ))}
+        {/* tail lights */}
+        {([-0.42, 0.42] as number[]).map((x, i) => (
+          <mesh key={i} position={[x, 0.40, -1.12]}>
+            <boxGeometry args={[0.22, 0.13, 0.04]} />
+            <meshStandardMaterial color="#ff1800" emissive="#ff1800" emissiveIntensity={1.2} />
+          </mesh>
+        ))}
+      </group>
     </group>
   );
 }
@@ -1001,12 +1072,14 @@ function Scene({
   onFlip,
   rightCarRef,
   onAboutEnter,
+  dogOverlayRef,
 }: {
   onProjectEnter: (p: Project, tp: [number, number]) => void;
   teleportRef: React.RefObject<[number, number] | null>;
   onFlip: () => void;
   rightCarRef: React.MutableRefObject<boolean>;
   onAboutEnter: () => void;
+  dogOverlayRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const keys            = useKeys();
   const carRef          = useRef<THREE.Group>(null!);
@@ -1220,7 +1293,7 @@ function Scene({
       <MountainWarning position={[-7, 0,  4]} />
       <MountainWarning position={[-7, 0, 23]} />
       <SecretPath />
-      <DogHouse carPosRef={carPos} onEnter={onAboutEnter} />
+      <DogHouse carPosRef={carPos} onEnter={onAboutEnter} screenRef={dogOverlayRef} />
       <CityLife />
 
       {/* scene objects */}
@@ -1444,6 +1517,7 @@ export default function LabGame() {
   }, []);
 
   const [dogEntering, setDogEntering] = useState(false);
+  const dogAmbientRef = useRef<HTMLDivElement>(null);
 
   const handleFlip       = useCallback(() => setIsFlipped(true), []);
   const handleRightCar   = useCallback(() => {
@@ -1454,7 +1528,7 @@ export default function LabGame() {
 
   useEffect(() => {
     if (dogEntering) {
-      const t = setTimeout(() => router.push("/about"), 1300);
+      const t = setTimeout(() => router.push("/about"), 1800);
       return () => clearTimeout(t);
     }
   }, [dogEntering, router]);
@@ -1476,23 +1550,37 @@ export default function LabGame() {
           onFlip={handleFlip}
           rightCarRef={rightCarRef}
           onAboutEnter={handleAboutEnter}
+          dogOverlayRef={dogAmbientRef}
         />
       </Canvas>
       <HUD />
+
+      {/* ambient orange vignette — opacity driven directly by DogHouse useFrame (no re-renders) */}
+      <div
+        ref={dogAmbientRef}
+        style={{
+          position: "absolute", inset: 0, zIndex: 6,
+          pointerEvents: "none", opacity: 0,
+          background: "radial-gradient(ellipse at 80% 80%, rgba(255,100,0,0.55) 0%, rgba(255,160,40,0.25) 40%, transparent 70%)",
+        }}
+      />
+
       {dogEntering && (
         <>
           <style>{`
             @keyframes dogPortal {
-              0%   { opacity: 0; background: radial-gradient(circle at 72% 72%, #ff8833 0%, #ffcc88 40%, #ffffff 80%); }
-              25%  { opacity: 0.6; }
-              65%  { opacity: 0.95; }
-              100% { opacity: 1; background: radial-gradient(circle at 72% 72%, #ffeecc 0%, #ffffff 60%); }
+              0%   { opacity: 0.45; transform: scale(0.92); }
+              15%  { opacity: 0.80; transform: scale(1.0); }
+              50%  { opacity: 0.96; background: radial-gradient(circle at 75% 78%, #ff6600 0%, #ffaa44 30%, #ffeecc 65%, #ffffff 90%); }
+              80%  { opacity: 1.0; background: radial-gradient(circle at 75% 78%, #ffcc88 0%, #ffffff 60%); }
+              100% { opacity: 1.0; background: #ffffff; }
             }
           `}</style>
           <div style={{
             position: "absolute", inset: 0, zIndex: 50,
             pointerEvents: "none",
-            animation: "dogPortal 1.3s ease-in forwards",
+            background: "radial-gradient(circle at 75% 78%, #ff6600 0%, #ffaa44 30%, #ffeecc 65%, #ffffff 90%)",
+            animation: "dogPortal 1.8s cubic-bezier(0.4,0,0.2,1) forwards",
           }} />
         </>
       )}
