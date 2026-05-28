@@ -194,7 +194,8 @@ export function Mouse3D({
   speedRef: React.RefObject<number>;
   carBumpRef: React.RefObject<number>;
 }) {
-  const groupRef = useRef<THREE.Group>(null!);
+  const groupRef  = useRef<THREE.Group>(null!);
+  const _cableEnd = useRef(new THREE.Vector3(...CABLE_ANCHOR));
   const body = useRef<Body>({
     pos: new THREE.Vector3(...initPos),
     vel: new THREE.Vector3(),
@@ -227,8 +228,8 @@ export function Mouse3D({
     /* cable path */
     const posArr = cableGeo.attributes.position as THREE.BufferAttribute;
     const start  = body.current.pos;
-    const end    = new THREE.Vector3(...CABLE_ANCHOR);
-    const dist   = start.distanceTo(end);
+    const end  = _cableEnd.current;
+    const dist = start.distanceTo(end);
     for (let i = 0; i < CABLE_PTS; i++) {
       const t   = i / (CABLE_PTS - 1);
       const px  = start.x + (end.x - start.x) * t;

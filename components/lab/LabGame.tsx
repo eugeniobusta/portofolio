@@ -263,10 +263,12 @@ function Smoke({
       life: 0, max: 1, on: false,
     }))
   );
-  const timer = useRef(0);
-  const M = useMemo(() => new THREE.Matrix4(), []);
-  const Q = useMemo(() => new THREE.Quaternion(), []);
-  const S = useMemo(() => new THREE.Vector3(), []);
+  const timer      = useRef(0);
+  const M          = useMemo(() => new THREE.Matrix4(), []);
+  const Q          = useMemo(() => new THREE.Quaternion(), []);
+  const S          = useMemo(() => new THREE.Vector3(), []);
+  const _HIDE      = useMemo(() => new THREE.Vector3(0, -9999, 0), []);
+  const _spawnLoc  = useMemo(() => new THREE.Vector3(), []);
 
   useFrame((_, delta) => {
     const dt  = Math.min(delta, 0.05);
@@ -280,14 +282,13 @@ function Smoke({
       timer.current = 0.045;
       const p = puffs.current.find(p => !p.on);
       if (p) {
-        /* spawn across the rear of the car, low to the ground */
-        const local = new THREE.Vector3(
+        _spawnLoc.set(
           (Math.random() - 0.5) * 0.9,
           0.08 + Math.random() * 0.10,
           -1.0 * 0.88,
         );
-        local.applyMatrix4(car.matrixWorld);
-        p.pos.copy(local);
+        _spawnLoc.applyMatrix4(car.matrixWorld);
+        p.pos.copy(_spawnLoc);
         /* push backward along car heading so it trails behind */
         const sY = Math.sin(car.rotation.y), cY = Math.cos(car.rotation.y);
         p.vel.set(
@@ -316,7 +317,7 @@ function Smoke({
     }
     /* hide unused slots underground */
     for (let i = idx; i < SMOKE_N; i++) {
-      M.compose(new THREE.Vector3(0, -9999, 0), Q.identity(), S.set(0.001, 0.001, 0.001));
+      M.compose(_HIDE, Q.identity(), S.set(0.001, 0.001, 0.001));
       mesh.current.setMatrixAt(i, M);
     }
     mesh.current.instanceMatrix.needsUpdate = true;
@@ -362,13 +363,15 @@ function BoostTrail({
     }))
   );
 
-  const timer = useRef(0);
-  const M  = useMemo(() => new THREE.Matrix4(), []);
-  const Q  = useMemo(() => new THREE.Quaternion(), []);
-  const S  = useMemo(() => new THREE.Vector3(), []);
-  const C  = useMemo(() => new THREE.Color(), []);
-  const BLACK     = useMemo(() => new THREE.Color("#020602"), []);
-  const DARKGREEN = useMemo(() => new THREE.Color("#062010"), []);
+  const timer      = useRef(0);
+  const M          = useMemo(() => new THREE.Matrix4(), []);
+  const Q          = useMemo(() => new THREE.Quaternion(), []);
+  const S          = useMemo(() => new THREE.Vector3(), []);
+  const C          = useMemo(() => new THREE.Color(), []);
+  const BLACK      = useMemo(() => new THREE.Color("#020602"), []);
+  const DARKGREEN  = useMemo(() => new THREE.Color("#062010"), []);
+  const _HIDE      = useMemo(() => new THREE.Vector3(0, -9999, 0), []);
+  const _spawnLoc  = useMemo(() => new THREE.Vector3(), []);
 
   useFrame((_, delta) => {
     const dt  = Math.min(delta, 0.05);
@@ -390,9 +393,9 @@ function BoostTrail({
           if (!p) break;
           const ox = (Math.random() - 0.5) * 1.4;
           const oy = 0.04 + Math.random() * 0.22;
-          const local = new THREE.Vector3(ox * 0.88, oy * 0.88, -1.08 * 0.88);
-          local.applyMatrix4(car.matrixWorld);
-          p.pos.copy(local);
+          _spawnLoc.set(ox * 0.88, oy * 0.88, -1.08 * 0.88);
+          _spawnLoc.applyMatrix4(car.matrixWorld);
+          p.pos.copy(_spawnLoc);
           const spd = Math.abs(speedRef.current ?? 0);
           const back = spd * 0.55 + 14;
           p.vel.set(
@@ -412,9 +415,9 @@ function BoostTrail({
           const p = darkPuffs.current.find(p => !p.on);
           if (!p) break;
           const ox = (Math.random() - 0.5) * 1.6;
-          const local = new THREE.Vector3(ox * 0.88, 0.10 * 0.88, -1.18 * 0.88);
-          local.applyMatrix4(car.matrixWorld);
-          p.pos.copy(local);
+          _spawnLoc.set(ox * 0.88, 0.10 * 0.88, -1.18 * 0.88);
+          _spawnLoc.applyMatrix4(car.matrixWorld);
+          p.pos.copy(_spawnLoc);
           const spd = Math.abs(speedRef.current ?? 0);
           p.vel.set(
             -sY * (spd * 0.35 + 7) + (Math.random() - 0.5) * 3.5,
@@ -449,7 +452,7 @@ function BoostTrail({
       idx++;
     }
     for (let i = idx; i < FIRE_N; i++) {
-      M.compose(new THREE.Vector3(0, -9999, 0), Q.identity(), S.set(0.001, 0.001, 0.001));
+      M.compose(_HIDE, Q.identity(), S.set(0.001, 0.001, 0.001));
       fireMesh.current.setMatrixAt(i, M);
     }
     fireMesh.current.instanceMatrix.needsUpdate = true;
@@ -464,7 +467,7 @@ function BoostTrail({
       p.pos.addScaledVector(p.vel, dt);
       p.vel.multiplyScalar(0.86);
       const t  = p.life / p.max;
-      const sz = 0.12 + t * 0.55; // grows as it dissipates
+      const sz = 0.12 + t * 0.55;
       M.compose(p.pos, Q.identity(), S.set(sz, sz, sz));
       darkMesh.current.setMatrixAt(idx, M);
       C.lerpColors(DARKGREEN, BLACK, t);
@@ -472,7 +475,7 @@ function BoostTrail({
       idx++;
     }
     for (let i = idx; i < DARK_N; i++) {
-      M.compose(new THREE.Vector3(0, -9999, 0), Q.identity(), S.set(0.001, 0.001, 0.001));
+      M.compose(_HIDE, Q.identity(), S.set(0.001, 0.001, 0.001));
       darkMesh.current.setMatrixAt(i, M);
     }
     darkMesh.current.instanceMatrix.needsUpdate = true;
@@ -498,14 +501,15 @@ function BoostTrail({
 
 /* ─── Green flicker light behind car during boost ────────────── */
 function BoostLight({ carRef, boostRef }: { carRef: React.RefObject<THREE.Group>; boostRef: React.RefObject<boolean> }) {
-  const lightRef = useRef<THREE.PointLight>(null!);
+  const lightRef   = useRef<THREE.PointLight>(null!);
+  const _boostLoc  = useRef(new THREE.Vector3());
 
   useFrame(() => {
     if (!lightRef.current || !carRef.current) return;
     if (!boostRef.current) { lightRef.current.intensity = 0; return; }
-    const local = new THREE.Vector3(0, 0.3, -2.4);
-    local.applyMatrix4(carRef.current.matrixWorld);
-    lightRef.current.position.copy(local);
+    _boostLoc.current.set(0, 0.3, -2.4);
+    _boostLoc.current.applyMatrix4(carRef.current.matrixWorld);
+    lightRef.current.position.copy(_boostLoc.current);
     lightRef.current.intensity = 10 + Math.random() * 6;
   });
 
@@ -543,7 +547,7 @@ function Headlights({ carRef }: { carRef: React.RefObject<THREE.Group> }) {
 
   return (
     <>
-      <spotLight ref={lRef} intensity={40} angle={0.40} penumbra={0.55} color="#fffcea" distance={24} decay={1.4} castShadow shadow-mapSize={[512, 512]} />
+      <spotLight ref={lRef} intensity={40} angle={0.40} penumbra={0.55} color="#fffcea" distance={24} decay={1.4} />
       <spotLight ref={rRef} intensity={40} angle={0.40} penumbra={0.55} color="#fffcea" distance={24} decay={1.4} />
     </>
   );
@@ -587,6 +591,8 @@ function MountainWarning({ position }: { position: [number, number, number] }) {
 
     return new THREE.CanvasTexture(c);
   }, []);
+
+  useEffect(() => () => { texture?.dispose(); }, [texture]);
 
   return (
     <group position={position}>
@@ -784,6 +790,8 @@ function DogHouse({
 
     return new THREE.CanvasTexture(c);
   }, []);
+
+  useEffect(() => () => { signTex?.dispose(); }, [signTex]);
 
   useFrame(() => {
     const dx = carPosRef.current.x - DOG_POS[0];
@@ -1083,6 +1091,7 @@ function Scene({
   const carBump         = useRef(0);
   const boostRef        = useRef(false);
   const lookaheadTarget = useRef(new THREE.Vector3());
+  const _dogTarget      = useRef(new THREE.Vector3());
   const carRoll         = useRef(0);
   const carPitch        = useRef(0);
   const flippedRef      = useRef(false);
@@ -1249,12 +1258,8 @@ function Scene({
         ctrl.minDistance = 1;
 
         /* target = car position (slightly elevated) — camera sits right on top */
-        const carTarget = new THREE.Vector3(
-          carPos.current.x,
-          carPos.current.y + 0.6,
-          carPos.current.z,
-        );
-        (ctrl.target as THREE.Vector3).lerp(carTarget, 0.18);
+        _dogTarget.current.set(carPos.current.x, carPos.current.y + 0.6, carPos.current.z);
+        (ctrl.target as THREE.Vector3).lerp(_dogTarget.current, 0.18);
 
         /* radius: from wherever it currently is → 1.8 (right on the car) */
         ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, 1.8, 0.14);
@@ -1284,7 +1289,7 @@ function Scene({
   return (
     <>
       <color attach="background" args={["#a8d0ef"]} />
-      <fog attach="fog" args={["#b8d8f4", 80, 200]} />
+      <fog attach="fog" args={["#b8d8f4", 80, 140]} />
       <Sky sunPosition={[80, 35, 60]} turbidity={0.4} rayleigh={1.2} mieCoefficient={0.003} mieDirectionalG={0.8} />
 
       <ambientLight intensity={1.6} color="#f0f8ff" />
@@ -1293,12 +1298,12 @@ function Scene({
         intensity={2.2}
         color="#fff8f0"
         castShadow
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-far={200}
-        shadow-camera-left={-70}
-        shadow-camera-right={70}
-        shadow-camera-top={70}
-        shadow-camera-bottom={-70}
+        shadow-mapSize={[512, 512]}
+        shadow-camera-far={160}
+        shadow-camera-left={-55}
+        shadow-camera-right={55}
+        shadow-camera-top={55}
+        shadow-camera-bottom={-55}
       />
       <directionalLight position={[-30, 20, -40]} intensity={0.55} color="#c8d8ff" />
 
@@ -1675,8 +1680,10 @@ export default function LabGame() {
     <div className="relative w-full h-full" style={{ background: "#a8d0ef" }}>
       <Canvas
         shadows
-        camera={{ fov: 52, near: 0.1, far: 400, position: [-2, 16, -20] }}
+        camera={{ fov: 52, near: 0.5, far: 160, position: [-2, 16, -20] }}
         gl={{ antialias: true, powerPreference: "high-performance" }}
+        dpr={[1, 1.5]}
+        performance={{ min: 0.75 }}
         style={{ width: "100%", height: "100%" }}
       >
         <Scene

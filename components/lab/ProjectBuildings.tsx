@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { projects, Project } from "../../data/projects";
@@ -310,45 +310,15 @@ function makeTexture(project: Project, accent: string, base: string) {
 
 /* ── Building component ──────────────────────────────────────────── */
 function Building({
-  project, cfg, accent, base, carRef, onEnter,
+  project, cfg, accent, base,
 }: {
   project: Project;
   cfg: BuildingConfig;
   accent: string;
   base: string;
-  carRef: React.RefObject<THREE.Group>;
-  onEnter: (p: Project, teleport: [number, number]) => void;
 }) {
-  const triggered = useRef(false);
-  const texture   = useMemo(() => makeTexture(project, accent, base), []);
-
-  /* teleport world pos = 3.5 units in front of door in local → world */
-  const teleportX = cfg.pos[0] + (-(BLDG_D / 2 + 3.5)) * cfg.sRY;
-  const teleportZ = cfg.pos[2] + (-(BLDG_D / 2 + 3.5)) * cfg.cRY;
-
-  useFrame(() => {
-    if (!carRef.current) return;
-    const c = carRef.current.position;
-    const dx = c.x - cfg.pos[0], dz = c.z - cfg.pos[2];
-    /* transform to building-local 2D */
-    const lx = dx * cfg.cRY - dz * cfg.sRY;
-    const lz = dx * cfg.sRY + dz * cfg.cRY;
-
-    /* trigger only when car has driven through the door into the interior */
-    const inside =
-      Math.abs(lx) < DOOR_W / 2 + 0.6 &&
-      lz > -(BLDG_D / 2 - 1.2) &&
-      lz < BLDG_D / 2;
-
-    if (inside) {
-      if (!triggered.current) {
-        triggered.current = true;
-        onEnter(project, [teleportX, teleportZ]);
-      }
-    } else {
-      triggered.current = false;
-    }
-  });
+  const texture = useMemo(() => makeTexture(project, accent, base), []);
+  useEffect(() => () => { texture?.dispose(); }, [texture]);
 
   const SW = (BLDG_W - DOOR_W) / 2;
   const HH = BLDG_H / 2;
@@ -427,6 +397,39 @@ export function ProjectBuildings({
   carRef: React.RefObject<THREE.Group>;
   onEnter: (p: Project, tp: [number, number]) => void;
 }) {
+  const triggered = useRef(projects.map(() => false));
+
+  const teleports = useMemo<[number, number][]>(
+    () => BLDG_CONFIGS.map(cfg => [
+      cfg.pos[0] + (-(BLDG_D / 2 + 3.5)) * cfg.sRY,
+      cfg.pos[2] + (-(BLDG_D / 2 + 3.5)) * cfg.cRY,
+    ]),
+    [],
+  );
+
+  useFrame(() => {
+    if (!carRef.current) return;
+    const c = carRef.current.position;
+    for (let i = 0; i < BLDG_CONFIGS.length; i++) {
+      const cfg = BLDG_CONFIGS[i];
+      const dx = c.x - cfg.pos[0], dz = c.z - cfg.pos[2];
+      const lx = dx * cfg.cRY - dz * cfg.sRY;
+      const lz = dx * cfg.sRY + dz * cfg.cRY;
+      const inside =
+        Math.abs(lx) < DOOR_W / 2 + 0.6 &&
+        lz > -(BLDG_D / 2 - 1.2) &&
+        lz < BLDG_D / 2;
+      if (inside) {
+        if (!triggered.current[i]) {
+          triggered.current[i] = true;
+          onEnter(projects[i], teleports[i]);
+        }
+      } else {
+        triggered.current[i] = false;
+      }
+    }
+  });
+
   return (
     <>
       {projects.map((p, i) => (
@@ -436,8 +439,6 @@ export function ProjectBuildings({
           cfg={BLDG_CONFIGS[i]}
           accent={ACCENTS[i]}
           base={BASES[i]}
-          carRef={carRef}
-          onEnter={onEnter}
         />
       ))}
     </>
