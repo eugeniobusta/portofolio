@@ -1253,20 +1253,17 @@ function Scene({
         ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, 28, 0.04);
       }
 
-      /* dog house proximity zoom: pull camera in and look at the sign board */
+      /* dog house proximity zoom: slam camera into the sign so text is readable */
       if (ctrl.spherical) {
         const ddx = carPos.current.x - DOG_POS[0];
         const ddz = carPos.current.z - DOG_POS[2];
         const dogDist = Math.sqrt(ddx * ddx + ddz * ddz);
-        const dogT = Math.max(0, 1 - dogDist / 50);   // starts at dist 50
+        const dogT = Math.max(0, 1 - dogDist / 55);   // starts feeling it at dist 55
         if (dogT > 0) {
-          /* quadratic ease: slow start, very tight at close range */
-          const t2 = dogT * dogT;
-          /* zoom in hard — radius 2.2 puts camera right on top of the car */
-          ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, THREE.MathUtils.lerp(28, 2.2, t2), 0.09);
-          /* shift orbit target toward the sign board center so text fills the frame */
+          const t3 = dogT * dogT * dogT;               // cubic — barely moves far out, slams at close range
+          ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, THREE.MathUtils.lerp(28, 0.6, t3), 0.14);
           const signCenter = new THREE.Vector3(37, 2.5, -37);
-          (ctrl.target as THREE.Vector3).lerp(signCenter, t2 * 0.07);
+          (ctrl.target as THREE.Vector3).lerp(signCenter, t3 * 0.18);
         }
       }
     }
