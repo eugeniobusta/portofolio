@@ -1253,17 +1253,24 @@ function Scene({
         ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, 28, 0.04);
       }
 
-      /* dog house proximity zoom: slam camera into the sign so text is readable */
+      /* dog house proximity zoom: readable sign text by the time you arrive */
       if (ctrl.spherical) {
         const ddx = carPos.current.x - DOG_POS[0];
         const ddz = carPos.current.z - DOG_POS[2];
         const dogDist = Math.sqrt(ddx * ddx + ddz * ddz);
-        const dogT = Math.max(0, 1 - dogDist / 55);   // starts feeling it at dist 55
+        /* linear 0→1 over the last 30 units — halfway = noticeable zoom already */
+        const dogT = Math.max(0, 1 - dogDist / 30);
         if (dogT > 0) {
-          const t3 = dogT * dogT * dogT;               // cubic — barely moves far out, slams at close range
-          ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, THREE.MathUtils.lerp(28, 0.6, t3), 0.14);
+          /* lower minDistance so OrbitControls doesn't clamp us */
+          ctrl.minDistance = THREE.MathUtils.lerp(5, 1.5, dogT);
+          /* lerp radius toward 2 — aggressive lerp so it actually moves */
+          ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, 2, 0.10);
+          /* aim the orbit target at the sign board center */
           const signCenter = new THREE.Vector3(37, 2.5, -37);
-          (ctrl.target as THREE.Vector3).lerp(signCenter, t3 * 0.18);
+          (ctrl.target as THREE.Vector3).lerp(signCenter, dogT * 0.10);
+        } else {
+          /* restore minDistance when not near dog house */
+          ctrl.minDistance = 5;
         }
       }
     }
@@ -1325,7 +1332,7 @@ function Scene({
         dampingFactor={0.07}
         minPolarAngle={Math.PI * 0.10}
         maxPolarAngle={Math.PI * 0.44}
-        minDistance={5}
+        minDistance={1}
         maxDistance={70}
         target={[0, 0, 14]}
       />
