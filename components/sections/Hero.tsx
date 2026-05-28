@@ -329,7 +329,7 @@ export default function Hero({ onGameOpen, isCollapsing }: HeroProps) {
       </AnimatePresence>
 
       <div className="container">
-        <div className="grid lg:grid-cols-[1fr_210px] gap-10 lg:gap-16 items-center pt-28 pb-16">
+        <div className="grid lg:grid-cols-[1fr_250px] gap-10 lg:gap-16 items-center pt-28 pb-16">
         <div>
 
           {/* Name */}
@@ -473,20 +473,20 @@ export default function Hero({ onGameOpen, isCollapsing }: HeroProps) {
             { label: "From",      value: "Spain",           sub: null,             flag: "🇪🇸" },
             { label: "Studying",  value: "Computer Science",sub: "2nd year · DCU", flag: null  },
           ].map(({ label, value, sub, flag }, i) => (
-            <div key={label} className={`px-5 py-4 ${i < 2 ? "border-b border-frame" : ""}`}>
-              <div className="text-[10px] text-muted/55 uppercase tracking-widest font-mono mb-1">{label}</div>
-              <div className="text-sm text-ink font-medium flex items-center gap-1.5">
+            <div key={label} className={`px-6 py-5 ${i < 2 ? "border-b border-frame" : ""}`}>
+              <div className="text-[10px] text-muted/55 uppercase tracking-widest font-mono mb-1.5">{label}</div>
+              <div className="text-base text-ink font-medium flex items-center gap-1.5">
                 {flag && <span>{flag}</span>}
                 {value}
               </div>
-              {sub && <div className="text-xs text-muted mt-0.5 font-mono">{sub}</div>}
+              {sub && <div className="text-xs text-muted mt-1 font-mono">{sub}</div>}
             </div>
           ))}
 
           {/* Languages row */}
-          <div className="px-5 py-4 border-t border-frame">
-            <div className="text-[10px] text-muted/55 uppercase tracking-widest font-mono mb-2.5">Languages</div>
-            <div className="flex gap-1.5">
+          <div className="px-6 py-5 border-t border-frame">
+            <div className="text-[10px] text-muted/55 uppercase tracking-widest font-mono mb-3">Languages</div>
+            <div className="flex gap-2">
               {[
                 { code: "EN", flag: "🇬🇧" },
                 { code: "FR", flag: "🇫🇷" },
@@ -502,7 +502,7 @@ export default function Hero({ onGameOpen, isCollapsing }: HeroProps) {
                 </span>
               ))}
             </div>
-            <div className="text-[10px] text-muted/50 mt-2 font-mono">all native</div>
+            <div className="text-[10px] text-muted/50 mt-2.5 font-mono">all native</div>
           </div>
         </motion.div>
 

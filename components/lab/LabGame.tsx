@@ -1238,8 +1238,6 @@ function Scene({
     /* ── heading-based lookahead camera ── */
     if (orbitRef.current && car) {
       const ctrl = orbitRef.current as any;
-      /* lead the camera in the direction the car is heading so the
-         destination building is always in view without manual orbit */
       const lookaheadDist = THREE.MathUtils.clamp(Math.abs(spd) * 0.4, 2, 14);
       lookaheadTarget.current.set(
         carPos.current.x + Math.sin(carYaw.current) * lookaheadDist,
@@ -1247,9 +1245,22 @@ function Scene({
         carPos.current.z + Math.cos(carYaw.current) * lookaheadDist,
       );
       (ctrl.target as THREE.Vector3).lerp(lookaheadTarget.current, 0.055);
+
       const camDist = camera.position.distanceTo(car.position);
+
+      /* auto-zoom out when car drifts far from center */
       if (camDist > 38 && ctrl.spherical) {
         ctrl.spherical.radius = THREE.MathUtils.lerp(ctrl.spherical.radius, 28, 0.04);
+      }
+
+      /* dog house proximity zoom: pull camera in as car approaches */
+      if (ctrl.spherical) {
+        const ddx = carPos.current.x - DOG_POS[0];
+        const ddz = carPos.current.z - DOG_POS[2];
+        const dogDist = Math.sqrt(ddx * ddx + ddz * ddz);
+        const dogT = Math.max(0, 1 - dogDist / 22);        // 0 far away → 1 right at door
+        const targetRadius = THREE.MathUtils.lerp(ctrl.spherical.radius, 8, dogT * 0.06);
+        if (dogT > 0) ctrl.spherical.radius = targetRadius;
       }
     }
 
