@@ -68,6 +68,8 @@ const out = {
     transition: { duration: 0.55, delay: 0.28, ease: GRAV } },
   chevron:    { y: "50vh",                        opacity: 0,
     transition: { duration: 0.30, delay: 0.05, ease: GRAV } },
+  panel:      { x: "55vw",  y: 80,  rotate: 12, opacity: 0,
+    transition: { duration: 0.50, delay: 0.22, ease: GRAV } },
 };
 
 /* ─── BREAKABLE ELEMENT ─────────────────────────────────────────────────── */
@@ -327,7 +329,8 @@ export default function Hero({ onGameOpen, isCollapsing }: HeroProps) {
       </AnimatePresence>
 
       <div className="container">
-        <div className="max-w-3xl pt-28 pb-16">
+        <div className="grid lg:grid-cols-[1fr_210px] gap-10 lg:gap-16 items-center pt-28 pb-16">
+        <div>
 
           {/* Name */}
           <FallingName isCollapsing={isCollapsing} />
@@ -455,7 +458,55 @@ export default function Hero({ onGameOpen, isCollapsing }: HeroProps) {
             </BreakableElement>
           </motion.div>
 
-        </div>
+        </div>{/* end left column */}
+
+        {/* ── Right info panel ── */}
+        <motion.div
+          initial={{ opacity: 0, x: 40 }}
+          animate={isCollapsing ? out.panel : { opacity: 1, x: 0 }}
+          transition={isCollapsing ? undefined : { type: "spring", damping: 22, stiffness: 180, delay: 0.52 }}
+          className="hidden lg:flex flex-col gap-0 rounded-2xl border border-frame overflow-hidden"
+          style={{ background: "var(--surface)" }}
+        >
+          {[
+            { label: "Based in",  value: "Dublin, Ireland", sub: null,          flag: "🇮🇪" },
+            { label: "From",      value: "Spain",           sub: null,          flag: "🇪🇸" },
+            { label: "Studying",  value: "Computer Science",sub: "2nd year · DCU", flag: null },
+          ].map(({ label, value, sub, flag }, i) => (
+            <div key={label} className={`px-5 py-4 ${i < 2 ? "border-b border-frame" : ""}`}>
+              <div className="text-[10px] text-muted/55 uppercase tracking-widest font-mono mb-1">{label}</div>
+              <div className="text-sm text-ink font-medium flex items-center gap-1.5">
+                {flag && <span>{flag}</span>}
+                {value}
+              </div>
+              {sub && <div className="text-xs text-muted mt-0.5 font-mono">{sub}</div>}
+            </div>
+          ))}
+
+          {/* Languages row */}
+          <div className="px-5 py-4 border-t border-frame">
+            <div className="text-[10px] text-muted/55 uppercase tracking-widest font-mono mb-2.5">Languages</div>
+            <div className="flex gap-1.5">
+              {[
+                { code: "EN", flag: "🇬🇧" },
+                { code: "FR", flag: "🇫🇷" },
+                { code: "ES", flag: "🇪🇸" },
+              ].map(({ code, flag }) => (
+                <span
+                  key={code}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono text-ink border border-frame"
+                  style={{ background: "var(--paper)" }}
+                >
+                  <span className="text-sm">{flag}</span>
+                  {code}
+                </span>
+              ))}
+            </div>
+            <div className="text-[10px] text-muted/50 mt-2 font-mono">all native</div>
+          </div>
+        </motion.div>
+
+        </div>{/* end grid */}
       </div>
 
       {/* Scroll chevron */}
