@@ -885,20 +885,16 @@ type PersonDef  = { from: [number,number,number]; to: [number,number,number]; sp
 type NPCCarDef  = { from: [number,number,number]; to: [number,number,number]; spd: number; phase: number; color: string };
 
 const PERSON_DEFS: PersonDef[] = [
-  { from: [14, 0, 13], to: [36, 0, 13], spd: 3.2, phase: 0.0, shirt: "#4488cc" },
-  { from: [36, 0, 17], to: [14, 0, 17], spd: 3.5, phase: 0.5, shirt: "#cc4444" },
-  { from: [3,  0,  8], to: [3,  0, 30], spd: 3.0, phase: 0.3, shirt: "#44aa66" },
-  { from: [5,  0, 30], to: [5,  0,  8], spd: 3.3, phase: 0.7, shirt: "#aa8844" },
-  { from: [14, 0, 33], to: [34, 0, 33], spd: 3.1, phase: 0.0, shirt: "#8844cc" },
-  { from: [34, 0, 37], to: [14, 0, 37], spd: 3.4, phase: 0.4, shirt: "#cc8822" },
-  { from: [22, 0,  5], to: [22, 0, 25], spd: 2.9, phase: 0.2, shirt: "#228888" },
-  { from: [28, 0, 25], to: [28, 0,  5], spd: 3.2, phase: 0.6, shirt: "#994422" },
+  { from: [14, 0, 13], to: [36, 0, 13], spd: 1.4, phase: 0.0, shirt: "#4488cc" },
+  { from: [36, 0, 17], to: [14, 0, 17], spd: 1.6, phase: 0.5, shirt: "#cc4444" },
+  { from: [3,  0,  8], to: [3,  0, 30], spd: 1.3, phase: 0.3, shirt: "#44aa66" },
+  { from: [22, 0,  5], to: [22, 0, 25], spd: 1.5, phase: 0.2, shirt: "#228888" },
+  { from: [28, 0, 25], to: [28, 0,  5], spd: 1.4, phase: 0.6, shirt: "#994422" },
 ];
 
 const NPC_CAR_DEFS: NPCCarDef[] = [
-  { from: [-2, 0, -38], to: [-2, 0, 44],  spd: 11, phase: 0.2, color: "#5566cc" },
-  { from: [ 2, 0,  44], to: [ 2, 0, -38], spd: 13, phase: 0.6, color: "#cc5544" },
-  { from: [32, 0,  13], to: [ 4, 0,  13], spd: 10, phase: 0.0, color: "#44aa88" },
+  { from: [-2, 0, -38], to: [-2, 0, 44],  spd: 6, phase: 0.2, color: "#5566cc" },
+  { from: [ 2, 0,  44], to: [ 2, 0, -38], spd: 7, phase: 0.6, color: "#cc5544" },
 ];
 
 function Person({ from, to, spd, phase, shirt }: PersonDef) {
@@ -944,43 +940,42 @@ function Person({ from, to, spd, phase, shirt }: PersonDef) {
     if (rArmGrp.current) rArmGrp.current.rotation.x =  swing * 0.6;
   });
 
-  /* person is roughly 1.9 units tall — similar scale to player car width */
   return (
     <group ref={grp}>
       {/* torso */}
-      <mesh position={[0, 1.12, 0]} castShadow>
+      <mesh position={[0, 1.12, 0]}>
         <boxGeometry args={[0.50, 0.85, 0.32]} />
         <meshStandardMaterial color={shirt} roughness={0.75} />
       </mesh>
       {/* head */}
-      <mesh position={[0, 1.80, 0]} castShadow>
+      <mesh position={[0, 1.80, 0]}>
         <boxGeometry args={[0.38, 0.40, 0.34]} />
         <meshStandardMaterial color="#f0c080" roughness={0.65} />
       </mesh>
-      {/* left leg — pivot at hip (y=0.75) */}
+      {/* left leg — pivot at hip */}
       <group ref={lLegGrp} position={[-0.14, 0.75, 0]}>
-        <mesh position={[0, -0.37, 0]} castShadow>
+        <mesh position={[0, -0.37, 0]}>
           <boxGeometry args={[0.20, 0.75, 0.22]} />
           <meshStandardMaterial color="#2a2a2a" roughness={0.85} />
         </mesh>
       </group>
-      {/* right leg — pivot at hip */}
+      {/* right leg */}
       <group ref={rLegGrp} position={[0.14, 0.75, 0]}>
-        <mesh position={[0, -0.37, 0]} castShadow>
+        <mesh position={[0, -0.37, 0]}>
           <boxGeometry args={[0.20, 0.75, 0.22]} />
           <meshStandardMaterial color="#2a2a2a" roughness={0.85} />
         </mesh>
       </group>
-      {/* left arm — pivot at shoulder (y=1.54) */}
+      {/* left arm — pivot at shoulder */}
       <group ref={lArmGrp} position={[-0.35, 1.54, 0]}>
-        <mesh position={[0, -0.32, 0]} castShadow>
+        <mesh position={[0, -0.32, 0]}>
           <boxGeometry args={[0.17, 0.65, 0.18]} />
           <meshStandardMaterial color={shirt} roughness={0.75} />
         </mesh>
       </group>
-      {/* right arm — pivot at shoulder */}
+      {/* right arm */}
       <group ref={rArmGrp} position={[0.35, 1.54, 0]}>
-        <mesh position={[0, -0.32, 0]} castShadow>
+        <mesh position={[0, -0.32, 0]}>
           <boxGeometry args={[0.17, 0.65, 0.18]} />
           <meshStandardMaterial color={shirt} roughness={0.75} />
         </mesh>
@@ -1015,22 +1010,20 @@ function NPCCar({ from, to, spd, phase, color }: NPCCarDef) {
     }
 
     if (ref.current) {
-      const groundY = sampleH(posX.current, posZ.current);
-      ref.current.position.set(posX.current, groundY + 0.26, posZ.current);
+      ref.current.position.set(posX.current, 0.26, posZ.current);
     }
   });
 
-  /* same scale as the player jeep body */
   return (
     <group ref={ref}>
       <group scale={0.88}>
         {/* body */}
-        <mesh position={[0, 0.38, 0]} castShadow>
+        <mesh position={[0, 0.38, 0]}>
           <boxGeometry args={[1.4, 0.42, 2.2]} />
           <meshStandardMaterial color={color} roughness={0.52} metalness={0.18} />
         </mesh>
         {/* cabin */}
-        <mesh position={[0, 0.80, -0.06]} castShadow>
+        <mesh position={[0, 0.80, -0.06]}>
           <boxGeometry args={[1.22, 0.50, 1.28]} />
           <meshStandardMaterial color="#1a1a28" roughness={0.72} />
         </mesh>
