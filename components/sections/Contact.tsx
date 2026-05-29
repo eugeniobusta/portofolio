@@ -253,7 +253,7 @@ export default function Contact() {
               </div>
               <div className="flex flex-col gap-2">
                 <a
-                  href="https://github.com"
+                  href="https://github.com/eugeniobusta"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-sm text-muted hover:text-ink transition-colors duration-200"
@@ -262,7 +262,7 @@ export default function Contact() {
                   GitHub
                 </a>
                 <a
-                  href="https://linkedin.com"
+                  href="https://linkedin.com/in/eugenio-bustamante-4018522ba"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-sm text-muted hover:text-ink transition-colors duration-200"
