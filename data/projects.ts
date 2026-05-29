@@ -67,7 +67,7 @@ export const projects: Project[] = [
   },
   {
     id: "voice-calendar",
-    title: "VoiceCalendar AI",
+    title: "VoiceCalendar",
     description:
       "Talk to your calendar. Say what you want to schedule, it transcribes it with Whisper, pulls out the details with Groq, and adds the event to Google Calendar. Works from the web, CLI, or Telegram.",
     stack: [
@@ -128,8 +128,8 @@ export const ideas: Idea[] = [
     tags: ["Python", "Next.js", "Claude API"],
   },
   {
-    id: "codereview-ai",
-    title: "CodeReview AI",
+    id: "pr-critic",
+    title: "PRCritic",
     description:
       "A GitHub App that leaves inline comments on your PRs like an actual reviewer would. Points out issues, asks questions, flags anything that looks wrong.",
     tags: ["Node.js", "GitHub API", "Claude"],
