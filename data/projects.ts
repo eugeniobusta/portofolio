@@ -147,27 +147,27 @@ export const skills = [
   {
     category: "Languages",
     color: "blue" as TagColor,
-    items: ["Python", "TypeScript", "JavaScript", "SQL", "Bash"],
+    items: ["Python", "TypeScript", "JavaScript"],
   },
   {
     category: "Frameworks",
     color: "green" as TagColor,
-    items: ["Next.js", "React", "React Native", "Expo", "Flask"],
+    items: ["Next.js", "React", "React Native", "Flask"],
   },
   {
     category: "AI / ML",
     color: "amber" as TagColor,
-    items: ["Groq", "Whisper", "OpenRouter", "Claude API", "Supabase Vectors"],
+    items: ["Groq", "Whisper", "Claude API"],
   },
   {
     category: "Databases",
     color: "plain" as TagColor,
-    items: ["PostgreSQL", "SQLite", "Supabase"],
+    items: ["PostgreSQL", "Supabase"],
   },
   {
     category: "Tools",
     color: "plain" as TagColor,
-    items: ["Git", "Docker", "Vercel", "GitHub Actions", "Daily.co"],
+    items: ["Git", "Vercel", "GitHub Actions", "Docker"],
   },
 ];
 

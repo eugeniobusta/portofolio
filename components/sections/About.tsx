@@ -50,7 +50,7 @@ export default function About() {
           <h2 className="font-serif text-[clamp(2rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.02em] text-ink max-w-2xl">
             CS student.
             <br />
-            <span className="text-muted font-serif">AI obsessive.</span>
+            <span className="text-muted font-serif">Habitual builder.</span>
           </h2>
         </motion.div>
 
