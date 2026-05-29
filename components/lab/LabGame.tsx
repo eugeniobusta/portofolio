@@ -10,6 +10,7 @@ import { InfoPoster } from "./Poster";
 import { WASDKeys, Mouse3D } from "./Props";
 import { ProjectBuildings, BLDG_CONFIGS, BLDG_W, BLDG_D, DOOR_W, BLDG_WT } from "./ProjectBuildings";
 import { Project } from "../../data/projects";
+import { LabLoading } from "./LabLoading";
 
 /* ─── palette ─────────────────────────────────────────────────── */
 const C_BODY  = "#3ecf6a";
@@ -1605,6 +1606,7 @@ const TUTORIAL_KEY = "lab-tutorial-seen";
 export default function LabGame() {
   const router = useRouter();
   const [ready, setReady]                 = useState(false);
+  const [showLoader, setShowLoader]       = useState(true);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [isFlipped, setIsFlipped]         = useState(false);
   const [showTutorial, setShowTutorial]   = useState(false);
@@ -1668,7 +1670,8 @@ export default function LabGame() {
         />
       </Canvas>
       <HUD />
-      {showTutorial && <LabTutorial onDismiss={handleTutorialDismiss} />}
+      {showTutorial && !showLoader && <LabTutorial onDismiss={handleTutorialDismiss} />}
+      {showLoader && <LabLoading onDone={() => setShowLoader(false)} />}
 
       {dogEntering && (
         <div style={{
