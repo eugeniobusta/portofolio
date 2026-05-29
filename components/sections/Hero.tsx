@@ -342,7 +342,7 @@ export default function Hero({ onGameOpen, isCollapsing }: HeroProps) {
             animate={isCollapsing ? out.tagline : "visible"}
             className="text-lg text-muted leading-relaxed max-w-md mb-3"
           >
-            I build software, mostly things with AI in them.
+            I build software — voice interfaces, 3D web experiences, matchmaking tools.
             Figuring out what it means to actually ship products, not just demos.
           </motion.p>
 
