@@ -6,7 +6,7 @@ import Image from "next/image";
 /* Animated preview visuals for each project card. */
 
 function PitchVisual({ featured }: { featured?: boolean }) {
-  const h = featured ? "h-52" : "h-56";
+  const h = featured ? "h-52" : "h-40";
   return (
     <div className={`relative ${h} w-full overflow-hidden rounded-t-xl`}
       style={{ background: "linear-gradient(135deg, oklch(20% 0.02 250) 0%, oklch(25% 0.04 230) 100%)" }}>
@@ -57,9 +57,9 @@ function PitchVisual({ featured }: { featured?: boolean }) {
 }
 
 function CosmosVisual({ featured }: { featured?: boolean }) {
-  const size = featured ? 160 : 134;
+  const size = featured ? 160 : 110;
   return (
-    <div className={`relative ${featured ? "h-52" : "h-48"} w-full overflow-hidden rounded-t-xl flex items-center justify-center`}
+    <div className={`relative ${featured ? "h-52" : "h-36"} w-full overflow-hidden rounded-t-xl flex items-center justify-center`}
       style={{ background: "radial-gradient(ellipse at 50% 60%, oklch(14% 0.01 250) 0%, oklch(10% 0.005 250) 100%)" }}>
 
       {/* Stars */}
@@ -122,7 +122,7 @@ function VoiceVisual({ featured }: { featured?: boolean }) {
   ];
 
   return (
-    <div className={`relative ${featured ? "h-52" : "h-44"} w-full overflow-hidden rounded-t-xl flex items-center`}
+    <div className={`relative ${featured ? "h-52" : "h-36"} w-full overflow-hidden rounded-t-xl flex items-center`}
       style={{ background: "linear-gradient(135deg, oklch(18% 0.01 145) 0%, oklch(22% 0.02 160) 100%)" }}>
 
       <div className="absolute inset-0 pointer-events-none"
@@ -191,7 +191,7 @@ function StartupVisual({ featured }: { featured?: boolean }) {
   ];
 
   return (
-    <div className={`relative ${featured ? "h-52" : "h-40"} w-full overflow-hidden rounded-t-xl flex flex-col items-center justify-center gap-2`}
+    <div className={`relative ${featured ? "h-52" : "h-36"} w-full overflow-hidden rounded-t-xl flex flex-col items-center justify-center gap-2`}
       style={{ background: "linear-gradient(135deg, oklch(15% 0.01 250) 0%, oklch(20% 0.02 260) 100%)" }}>
 
       <div className="absolute inset-0 pointer-events-none"
@@ -235,12 +235,12 @@ function StartupVisual({ featured }: { featured?: boolean }) {
 
 function SweatShotVisual({ featured }: { featured?: boolean }) {
   const slides = [
-    "/projects/sweatshot/3.png",
-    "/projects/sweatshot/1.png",
-    "/projects/sweatshot/5.png",
-    "/projects/sweatshot/2.png",
-    "/projects/sweatshot/4.png",
     "/projects/sweatshot/show-work.png",
+    "/projects/sweatshot/1.png",
+    "/projects/sweatshot/2.png",
+    "/projects/sweatshot/3.png",
+    "/projects/sweatshot/4.png",
+    "/projects/sweatshot/5.png",
     "/projects/sweatshot/6.png",
   ];
   const N = slides.length;
@@ -266,8 +266,8 @@ function SweatShotVisual({ featured }: { featured?: boolean }) {
       setSettling(true);
       setIdx(i => (i + 1) % N);
       setDrag(0);
-      setTimeout(() => setSettling(false), 420);
-    }, 3200);
+      setTimeout(() => setSettling(false), 950);
+    }, 5000);
   }, [N]);
 
   React.useEffect(() => { arm(); return () => clearInterval(timerRef.current); }, [arm]);
@@ -279,7 +279,7 @@ function SweatShotVisual({ featured }: { featured?: boolean }) {
     setIdx(i => (i + dir + N) % N);
     setDrag(0);
     arm();
-    setTimeout(() => setSettling(false), advancing ? 460 : 300);
+    setTimeout(() => setSettling(false), advancing ? 950 : 500);
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -324,13 +324,13 @@ function SweatShotVisual({ featured }: { featured?: boolean }) {
   const tiltY = (drag / W) * 14;
   const pct   = -idx * (100 / N);
   const easing = useSpring
-    ? "transform 0.48s cubic-bezier(0.34, 1.56, 0.64, 1)"
-    : "transform 0.28s cubic-bezier(0.25, 1, 0.5, 1)";
+    ? "transform 0.85s cubic-bezier(0.4, 0, 0.2, 1)"
+    : "transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)";
 
   return (
     <div
       ref={containerRef}
-      className={`relative ${featured ? "h-[520px]" : "h-36"} w-full overflow-hidden rounded-t-xl cursor-grab active:cursor-grabbing select-none`}
+      className={`relative ${featured ? "h-[400px]" : "h-36"} w-full overflow-hidden rounded-t-xl cursor-grab active:cursor-grabbing select-none`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -355,9 +355,8 @@ function SweatShotVisual({ featured }: { featured?: boolean }) {
             className="relative h-full"
             style={{
               width: `${100 / N}%`,
-              background: "#0a0a0a",
               transform: `perspective(1100px) rotateY(${i === idx ? tiltY : 0}deg)`,
-              transition: settling && i === idx ? "transform 0.3s ease-out" : "none",
+              transition: settling && i === idx ? "transform 0.5s ease-out" : "none",
             }}
           >
             <Image
@@ -365,7 +364,8 @@ function SweatShotVisual({ featured }: { featured?: boolean }) {
               alt="SweatShot"
               fill
               draggable={false}
-              className="object-contain pointer-events-none"
+              className="object-cover pointer-events-none"
+              style={{ objectPosition: "50% 22%" }}
               sizes="(max-width:768px) 100vw, 50vw"
               priority={i === 0}
             />
@@ -409,12 +409,12 @@ function SweatShotVisual({ featured }: { featured?: boolean }) {
 
 function TennisVisual({ featured }: { featured?: boolean }) {
   return (
-    <div className={`relative ${featured ? "h-52" : "h-52"} w-full overflow-hidden rounded-t-xl`}>
+    <div className={`relative ${featured ? "h-52" : "h-40"} w-full overflow-hidden rounded-t-xl`}>
       <Image
-        src="/projects/social-tennis12.png"
+        src="/projects/social-tennis.png"
         alt="DCU Social Tennis"
         fill
-        className="object-cover object-top"
+        className="object-cover object-center"
         sizes="(max-width: 768px) 100vw, 50vw"
       />
       {/* Gradient overlay so card text reads cleanly below */}
