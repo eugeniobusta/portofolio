@@ -234,7 +234,6 @@ function StartupVisual({ featured }: { featured?: boolean }) {
 }
 
 function SweatShotVisual({ featured }: { featured?: boolean }) {
-  const [idx, setIdx] = React.useState(0);
   const slides = [
     "/projects/sweatshot/show-work.png",
     "/projects/sweatshot/3.png",
@@ -242,34 +241,144 @@ function SweatShotVisual({ featured }: { featured?: boolean }) {
     "/projects/sweatshot/2.png",
     "/projects/sweatshot/5.png",
   ];
+  const N = slides.length;
+
+  const [idx, setIdx]       = React.useState(0);
+  const [drag, setDrag]     = React.useState(0);
+  const [settling, setSettling] = React.useState(false);
+  const [useSpring, setUseSpring] = React.useState(false);
+  const dragging   = React.useRef(false);
+  const startX     = React.useRef(0);
+  const widthRef   = React.useRef(0);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const timerRef   = React.useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   React.useEffect(() => {
-    const t = setInterval(() => setIdx((i) => (i + 1) % slides.length), 2800);
-    return () => clearInterval(t);
+    if (containerRef.current) widthRef.current = containerRef.current.clientWidth;
   }, []);
 
+  const arm = React.useCallback(() => {
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setUseSpring(false);
+      setSettling(true);
+      setIdx(i => (i + 1) % N);
+      setDrag(0);
+      setTimeout(() => setSettling(false), 420);
+    }, 3200);
+  }, [N]);
+
+  React.useEffect(() => { arm(); return () => clearInterval(timerRef.current); }, [arm]);
+
+  const go = (dir: number) => {
+    const advancing = dir !== 0;
+    setUseSpring(advancing);
+    setSettling(true);
+    setIdx(i => (i + dir + N) % N);
+    setDrag(0);
+    arm();
+    setTimeout(() => setSettling(false), advancing ? 460 : 300);
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    dragging.current = true;
+    startX.current = e.clientX;
+    setSettling(false);
+    clearInterval(timerRef.current);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    setDrag(e.clientX - startX.current);
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    const W = widthRef.current || 400;
+    const dx = e.clientX - startX.current;
+    if (dx < -W * 0.18) go(1);
+    else if (dx > W * 0.18) go(-1);
+    else go(0);
+  };
+
+  const W     = widthRef.current || 400;
+  const tiltY = (drag / W) * 14;
+  const pct   = -idx * (100 / N);
+  const easing = useSpring
+    ? "transform 0.48s cubic-bezier(0.34, 1.56, 0.64, 1)"
+    : "transform 0.28s cubic-bezier(0.25, 1, 0.5, 1)";
+
   return (
-    <div className={`relative ${featured ? "h-80" : "h-36"} w-full overflow-hidden rounded-t-xl`}>
-      {slides.map((src, i) => (
+    <div
+      ref={containerRef}
+      className={`relative ${featured ? "h-80" : "h-36"} w-full overflow-hidden rounded-t-xl cursor-grab active:cursor-grabbing select-none`}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+    >
+      {/* Sliding track — all slides in a flex row */}
+      <div
+        className="absolute top-0 left-0 h-full flex"
+        style={{
+          width: `${N * 100}%`,
+          transform: `translateX(calc(${pct}% + ${drag}px))`,
+          transition: settling ? easing : "none",
+          willChange: "transform",
+        }}
+      >
+        {slides.map((src, i) => (
+          <div
+            key={i}
+            className="relative h-full"
+            style={{
+              width: `${100 / N}%`,
+              /* 3D tilt only on the active slide while dragging */
+              transform: `perspective(1100px) rotateY(${i === idx ? tiltY : 0}deg)`,
+              transition: settling && i === idx ? "transform 0.3s ease-out" : "none",
+            }}
+          >
+            <Image
+              src={src}
+              alt="SweatShot"
+              fill
+              className="object-cover object-top"
+              sizes="(max-width:768px) 100vw, 50vw"
+              priority={i === 0}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Edge shadow deepens as you drag — gives physical depth feel */}
+      {drag !== 0 && !settling && (
         <div
-          key={i}
-          className="absolute inset-0 transition-opacity duration-700"
-          style={{ opacity: i === idx ? 1 : 0 }}
-        >
-          <Image src={src} alt="SweatShot" fill className="object-cover object-top" sizes="(max-width: 768px) 100vw, 66vw" />
-        </div>
-      ))}
-      {/* bottom gradient so card content reads cleanly */}
-      <div className="absolute inset-0 pointer-events-none"
-        style={{ background: "linear-gradient(to bottom, transparent 55%, oklch(12% 0.005 250 / 0.85) 100%)" }} />
-      {/* dot indicators */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `linear-gradient(to ${drag > 0 ? "left" : "right"}, rgba(0,0,0,${Math.min(Math.abs(drag) / W * 0.45, 0.45)}) 0%, transparent 55%)`,
+          }}
+        />
+      )}
+
+      {/* Bottom gradient */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: "linear-gradient(to bottom, transparent 55%, oklch(12% 0.005 250 / 0.85) 100%)" }}
+      />
+
+      {/* Pill indicators — active one stretches wide */}
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
         {slides.map((_, i) => (
           <button
             key={i}
-            onClick={() => setIdx(i)}
-            className="w-1.5 h-1.5 rounded-full transition-all duration-300"
-            style={{ background: i === idx ? "#fbbf24" : "rgba(255,255,255,0.3)" }}
+            onClick={e => { e.stopPropagation(); if (i !== idx) go(i - idx); }}
+            className="h-[5px] rounded-full transition-all duration-300"
+            style={{
+              width: i === idx ? 20 : 6,
+              background: i === idx ? "#fbbf24" : "rgba(255,255,255,0.35)",
+            }}
           />
         ))}
       </div>
