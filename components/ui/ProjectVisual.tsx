@@ -235,11 +235,13 @@ function StartupVisual({ featured }: { featured?: boolean }) {
 
 function SweatShotVisual({ featured }: { featured?: boolean }) {
   const slides = [
-    "/projects/sweatshot/show-work.png",
     "/projects/sweatshot/3.png",
     "/projects/sweatshot/1.png",
-    "/projects/sweatshot/2.png",
     "/projects/sweatshot/5.png",
+    "/projects/sweatshot/2.png",
+    "/projects/sweatshot/4.png",
+    "/projects/sweatshot/show-work.png",
+    "/projects/sweatshot/6.png",
   ];
   const N = slides.length;
 
@@ -328,7 +330,7 @@ function SweatShotVisual({ featured }: { featured?: boolean }) {
   return (
     <div
       ref={containerRef}
-      className={`relative ${featured ? "h-80" : "h-36"} w-full overflow-hidden rounded-t-xl cursor-grab active:cursor-grabbing select-none`}
+      className={`relative ${featured ? "h-[520px]" : "h-36"} w-full overflow-hidden rounded-t-xl cursor-grab active:cursor-grabbing select-none`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -353,7 +355,7 @@ function SweatShotVisual({ featured }: { featured?: boolean }) {
             className="relative h-full"
             style={{
               width: `${100 / N}%`,
-              /* 3D tilt only on the active slide while dragging */
+              background: "#0a0a0a",
               transform: `perspective(1100px) rotateY(${i === idx ? tiltY : 0}deg)`,
               transition: settling && i === idx ? "transform 0.3s ease-out" : "none",
             }}
@@ -363,7 +365,7 @@ function SweatShotVisual({ featured }: { featured?: boolean }) {
               alt="SweatShot"
               fill
               draggable={false}
-              className="object-cover object-top pointer-events-none"
+              className="object-contain pointer-events-none"
               sizes="(max-width:768px) 100vw, 50vw"
               priority={i === 0}
             />

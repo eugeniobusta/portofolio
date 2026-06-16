@@ -197,8 +197,8 @@ export default function Projects() {
           <ProjectCard project={rest[0]}  index={1} direction="right" />
         </div>
 
-        {/* Row 2: remaining cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+        {/* Row 2: 2×2 grid — more breathing room per card */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12">
           {rest.slice(1).map((p, i) => (
             <ProjectCard key={p.id} project={p} index={i + 2} direction="up" />
           ))}
