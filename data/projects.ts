@@ -18,7 +18,7 @@ export interface Project {
   status: "live" | "dev" | "complete";
   year: string;
   featured?: boolean;
-  visual: "pitch" | "cosmosbusta" | "voice" | "startup" | "tennis";
+  visual: "pitch" | "cosmosbusta" | "voice" | "startup" | "tennis" | "sweatshot";
 }
 
 export interface Idea {
@@ -29,6 +29,24 @@ export interface Idea {
 }
 
 export const projects: Project[] = [
+  {
+    id: "sweatshot",
+    title: "SweatShot",
+    description:
+      "Fitness accountability app — BeReal for the gym. Post dual-camera proof of your workout to private friend circles. Streaks, leaderboards, and the healthy FOMO of your circle watching when you skip.",
+    stack: [
+      { name: "React Native", color: "blue" },
+      { name: "Expo", color: "blue" },
+      { name: "Supabase", color: "green" },
+      { name: "Zustand", color: "amber" },
+      { name: "TypeScript", color: "blue" },
+    ],
+    github: null,
+    live: "https://sweatshot.app",
+    status: "live",
+    year: "2026",
+    visual: "sweatshot",
+  },
   {
     id: "pitch",
     title: "Pitch",

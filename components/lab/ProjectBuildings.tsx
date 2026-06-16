@@ -26,6 +26,7 @@ const RAW: { pos: [number, number, number]; rotY: number }[] = [
   { pos: [-38, 0,  35], rotY: -Math.PI / 2 },
   { pos: [ 38, 0,  35], rotY:  Math.PI / 2 },
   { pos: [  0, 0, -36], rotY:  Math.PI     },
+  { pos: [  0, 0,  60], rotY:  0           },
 ];
 
 export const BLDG_CONFIGS: BuildingConfig[] = RAW.map(c => ({
@@ -34,8 +35,8 @@ export const BLDG_CONFIGS: BuildingConfig[] = RAW.map(c => ({
   sRY: Math.sin(c.rotY),
 }));
 
-const ACCENTS = ["#3ecf6a", "#4488ff", "#ff6644", "#44ccff", "#ffaa44"];
-const BASES   = ["#0a1a0f", "#080d1a", "#1a0a06", "#061218", "#141008"];
+const ACCENTS = ["#3ecf6a", "#4488ff", "#ff6644", "#44ccff", "#ffaa44", "#fbbf24"];
+const BASES   = ["#0a1a0f", "#080d1a", "#1a0a06", "#061218", "#141008", "#141002"];
 
 function rR(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   c.beginPath();
@@ -154,6 +155,45 @@ function drawVisual(
       ctx.moveTo(ox + tw + 2, oy + th / 2);
       ctx.lineTo(ox + tw + gap - 2, oy + th / 2);
       ctx.stroke();
+      break;
+    }
+    case "sweatshot": {
+      /* two phones + dumbbell + flame streak */
+      const phoneW = 52, phoneH = 84, phoneR = 10;
+      const leftX = cx - 110, rightX = cx + 58;
+      [[leftX, cy - phoneH / 2], [rightX, cy - phoneH / 2]].forEach(([px, py], pi) => {
+        rR(ctx, px, py, phoneW, phoneH, phoneR);
+        ctx.fillStyle = "rgba(255,255,255,0.07)"; ctx.fill();
+        ctx.strokeStyle = accent; ctx.lineWidth = 2; ctx.stroke();
+        /* inner screen */
+        ctx.fillStyle = "rgba(255,255,255,0.04)";
+        ctx.fillRect(px + 4, py + 4, phoneW - 8, phoneH - 18);
+        if (pi === 0) {
+          /* dumbbell on back-cam phone */
+          const bx = px + phoneW / 2, by = py + phoneH / 2 - 8;
+          ctx.strokeStyle = accent; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(bx - 20, by); ctx.lineTo(bx + 20, by); ctx.stroke();
+          [[bx - 20, bx - 12], [bx + 12, bx + 20]].forEach(([x1, x2]) => {
+            ctx.beginPath(); ctx.moveTo(x1, by - 8); ctx.lineTo(x2, by - 8); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x1, by + 8); ctx.lineTo(x2, by + 8); ctx.stroke();
+          });
+        } else {
+          /* face circle on front-cam phone */
+          ctx.fillStyle = accent + "44";
+          ctx.beginPath(); ctx.arc(px + phoneW / 2, py + phoneH / 2 - 8, 18, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = accent + "88"; ctx.lineWidth = 1.5; ctx.stroke();
+        }
+        /* home indicator */
+        rR(ctx, px + 16, py + phoneH - 12, phoneW - 32, 4, 2);
+        ctx.fillStyle = accent + "55"; ctx.fill();
+      });
+      /* flame + streak in middle */
+      ctx.font = "bold 36px Arial"; ctx.textAlign = "center";
+      ctx.fillText("🔥", cx - 26, cy + 16);
+      ctx.fillStyle = accent; ctx.font = "bold 28px Arial";
+      ctx.fillText("12", cx - 26, cy + 50);
+      ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.font = "13px Arial";
+      ctx.fillText("day streak", cx - 26, cy + 68);
       break;
     }
     case "tennis": {

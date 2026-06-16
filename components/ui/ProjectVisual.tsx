@@ -232,6 +232,76 @@ function StartupVisual({ featured }: { featured?: boolean }) {
   );
 }
 
+function SweatShotVisual({ featured }: { featured?: boolean }) {
+  return (
+    <div
+      className={`relative ${featured ? "h-52" : "h-36"} w-full overflow-hidden rounded-t-xl flex items-center justify-center`}
+      style={{ background: "linear-gradient(135deg, oklch(14% 0.03 60) 0%, oklch(18% 0.04 50) 100%)" }}
+    >
+      {/* Ambient glow */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{ background: "radial-gradient(ellipse 70% 60% at 50% 50%, oklch(72% 0.18 75 / 0.15), transparent)" }} />
+
+      {/* Two phones side by side */}
+      <div className="flex items-center gap-3 z-10">
+        {/* Back camera — gym */}
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-16 h-24 rounded-xl border-2 flex flex-col overflow-hidden"
+            style={{ borderColor: "oklch(72% 0.18 75 / 0.6)", background: "oklch(22% 0.02 250)" }}>
+            <div className="flex-1 flex flex-col items-center justify-center gap-1 p-1"
+              style={{ background: "oklch(18% 0.01 250)" }}>
+              {/* dumbbell icon rows */}
+              <svg width="28" height="14" viewBox="0 0 28 14" fill="none">
+                <rect x="0" y="5" width="5" height="4" rx="1.5" fill="oklch(72% 0.18 75 / 0.8)" />
+                <rect x="23" y="5" width="5" height="4" rx="1.5" fill="oklch(72% 0.18 75 / 0.8)" />
+                <rect x="5" y="3" width="3" height="8" rx="1" fill="oklch(72% 0.18 75)" />
+                <rect x="20" y="3" width="3" height="8" rx="1" fill="oklch(72% 0.18 75)" />
+                <rect x="8" y="6" width="12" height="2" rx="1" fill="oklch(72% 0.18 75 / 0.5)" />
+              </svg>
+              <div className="text-[6px] font-mono" style={{ color: "oklch(72% 0.18 75 / 0.6)" }}>GYM</div>
+            </div>
+            <div className="h-5 flex items-center justify-center"
+              style={{ background: "oklch(14% 0.02 60)" }}>
+              <div className="w-3 h-3 rounded-full border" style={{ borderColor: "oklch(72% 0.18 75 / 0.5)" }} />
+            </div>
+          </div>
+          <div className="text-[7px] font-mono" style={{ color: "oklch(72% 0.18 75 / 0.4)" }}>BACK</div>
+        </div>
+
+        {/* Streak counter in middle */}
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="text-base" style={{ filter: "drop-shadow(0 0 6px oklch(72% 0.18 75))" }}>🔥</div>
+          <div className="text-[10px] font-bold font-mono" style={{ color: "oklch(72% 0.18 75)" }}>12</div>
+          <div className="text-[6px] font-mono" style={{ color: "oklch(62% 0.05 75 / 0.5)" }}>days</div>
+        </div>
+
+        {/* Front camera — face */}
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-16 h-24 rounded-xl border-2 flex flex-col overflow-hidden"
+            style={{ borderColor: "oklch(72% 0.18 75 / 0.6)", background: "oklch(22% 0.02 250)" }}>
+            <div className="flex-1 flex flex-col items-center justify-center gap-1"
+              style={{ background: "oklch(28% 0.04 220)" }}>
+              <div className="w-8 h-8 rounded-full border-2"
+                style={{ background: "oklch(45% 0.06 30 / 0.6)", borderColor: "oklch(72% 0.18 75 / 0.4)" }} />
+              <div className="text-[6px] font-mono" style={{ color: "oklch(72% 0.18 75 / 0.6)" }}>FACE</div>
+            </div>
+            <div className="h-5 flex items-center justify-center"
+              style={{ background: "oklch(14% 0.02 60)" }}>
+              <div className="w-3 h-3 rounded-full border" style={{ borderColor: "oklch(72% 0.18 75 / 0.5)" }} />
+            </div>
+          </div>
+          <div className="text-[7px] font-mono" style={{ color: "oklch(72% 0.18 75 / 0.4)" }}>FRONT</div>
+        </div>
+      </div>
+
+      <div className="absolute bottom-3 left-4 text-[9px] font-mono uppercase tracking-widest"
+        style={{ color: "oklch(72% 0.18 75 / 0.35)" }}>
+        React Native · iOS + Android
+      </div>
+    </div>
+  );
+}
+
 function TennisVisual({ featured }: { featured?: boolean }) {
   return (
     <div className={`relative ${featured ? "h-52" : "h-36"} w-full overflow-hidden rounded-t-xl`}>
@@ -258,7 +328,8 @@ export default function ProjectVisual({ id, featured }: { id: string; featured?:
     case "cosmosbusta":   return <CosmosVisual  featured={featured} />;
     case "voice-calendar":return <VoiceVisual   featured={featured} />;
     case "startup-match": return <StartupVisual featured={featured} />;
-    case "social-tennis": return <TennisVisual  featured={featured} />;
+    case "social-tennis": return <TennisVisual    featured={featured} />;
+    case "sweatshot":     return <SweatShotVisual featured={featured} />;
     default:              return null;
   }
 }
