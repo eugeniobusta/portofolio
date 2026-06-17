@@ -330,14 +330,17 @@ function SweatShotVisual({ featured }: { featured?: boolean }) {
   return (
     <div
       ref={containerRef}
-      className={`relative ${featured ? "h-[400px]" : "h-36"} w-full overflow-hidden rounded-t-xl cursor-grab active:cursor-grabbing select-none`}
+      className="relative w-full overflow-hidden rounded-t-xl cursor-grab active:cursor-grabbing select-none"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       onWheel={onWheel}
       onDragStart={e => e.preventDefault()}
-      style={{ touchAction: "pan-y" }}
+      style={{
+        touchAction: "pan-y",
+        aspectRatio: featured ? "16/9" : "4/5",
+      }}
     >
       {/* Sliding track — all slides in a flex row */}
       <div
@@ -365,7 +368,6 @@ function SweatShotVisual({ featured }: { featured?: boolean }) {
               fill
               draggable={false}
               className="object-cover pointer-events-none"
-              style={{ objectPosition: "50% 22%" }}
               sizes="(max-width:768px) 100vw, 50vw"
               priority={i === 0}
             />

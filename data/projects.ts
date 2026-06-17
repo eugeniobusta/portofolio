@@ -45,7 +45,6 @@ export const projects: Project[] = [
     live: "https://sweatshot.app",
     status: "live",
     year: "2026",
-    featured: true,
     visual: "sweatshot",
   },
   {
@@ -64,6 +63,7 @@ export const projects: Project[] = [
     live: null,
     status: "dev",
     year: "2025",
+    featured: true,
     visual: "pitch",
   },
   {
