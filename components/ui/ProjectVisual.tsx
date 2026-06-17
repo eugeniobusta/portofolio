@@ -6,7 +6,7 @@ import Image from "next/image";
 /* Animated preview visuals for each project card. */
 
 function PitchVisual({ featured }: { featured?: boolean }) {
-  const h = featured ? "h-52" : "h-40";
+  const h = featured ? "h-52" : "h-[260px]";
   return (
     <div className={`relative ${h} w-full overflow-hidden rounded-t-xl`}
       style={{ background: "linear-gradient(135deg, oklch(20% 0.02 250) 0%, oklch(25% 0.04 230) 100%)" }}>
@@ -57,9 +57,9 @@ function PitchVisual({ featured }: { featured?: boolean }) {
 }
 
 function CosmosVisual({ featured }: { featured?: boolean }) {
-  const size = featured ? 160 : 110;
+  const size = featured ? 160 : 100;
   return (
-    <div className={`relative ${featured ? "h-52" : "h-36"} w-full overflow-hidden rounded-t-xl flex items-center justify-center`}
+    <div className={`relative ${featured ? "h-52" : "h-28"} w-full overflow-hidden rounded-t-xl flex items-center justify-center`}
       style={{ background: "radial-gradient(ellipse at 50% 60%, oklch(14% 0.01 250) 0%, oklch(10% 0.005 250) 100%)" }}>
 
       {/* Stars */}
@@ -122,7 +122,7 @@ function VoiceVisual({ featured }: { featured?: boolean }) {
   ];
 
   return (
-    <div className={`relative ${featured ? "h-52" : "h-36"} w-full overflow-hidden rounded-t-xl flex items-center`}
+    <div className={`relative ${featured ? "h-52" : "h-28"} w-full overflow-hidden rounded-t-xl flex items-center`}
       style={{ background: "linear-gradient(135deg, oklch(18% 0.01 145) 0%, oklch(22% 0.02 160) 100%)" }}>
 
       <div className="absolute inset-0 pointer-events-none"
@@ -191,7 +191,7 @@ function StartupVisual({ featured }: { featured?: boolean }) {
   ];
 
   return (
-    <div className={`relative ${featured ? "h-52" : "h-36"} w-full overflow-hidden rounded-t-xl flex flex-col items-center justify-center gap-2`}
+    <div className={`relative ${featured ? "h-52" : "h-28"} w-full overflow-hidden rounded-t-xl flex flex-col items-center justify-center gap-2`}
       style={{ background: "linear-gradient(135deg, oklch(15% 0.01 250) 0%, oklch(20% 0.02 260) 100%)" }}>
 
       <div className="absolute inset-0 pointer-events-none"
@@ -339,7 +339,8 @@ function SweatShotVisual({ featured }: { featured?: boolean }) {
       onDragStart={e => e.preventDefault()}
       style={{
         touchAction: "pan-y",
-        aspectRatio: featured ? "16/9" : "4/5",
+        height: featured ? 260 : undefined,
+        aspectRatio: featured ? undefined : "4/5",
       }}
     >
       {/* Sliding track — all slides in a flex row */}
@@ -368,6 +369,7 @@ function SweatShotVisual({ featured }: { featured?: boolean }) {
               fill
               draggable={false}
               className="object-cover pointer-events-none"
+              style={{ objectPosition: featured ? "50% 30%" : "50% 50%" }}
               sizes="(max-width:768px) 100vw, 50vw"
               priority={i === 0}
             />
@@ -411,7 +413,7 @@ function SweatShotVisual({ featured }: { featured?: boolean }) {
 
 function TennisVisual({ featured }: { featured?: boolean }) {
   return (
-    <div className={`relative ${featured ? "h-52" : "h-40"} w-full overflow-hidden rounded-t-xl`}>
+    <div className={`relative ${featured ? "h-52" : "h-32"} w-full overflow-hidden rounded-t-xl`}>
       <Image
         src="/projects/social-tennis.png"
         alt="DCU Social Tennis"

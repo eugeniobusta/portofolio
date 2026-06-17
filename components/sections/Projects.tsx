@@ -59,10 +59,7 @@ function ProjectCard({
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: "-60px" }}
-      className={[
-        "project-card flex flex-col overflow-hidden p-0",
-        project.featured ? "md:col-span-2" : "",
-      ].join(" ")}
+      className="project-card flex flex-col overflow-hidden p-0"
       style={{ borderRadius: 12 }}
     >
       {/* Animated visual preview */}
@@ -191,14 +188,28 @@ export default function Projects() {
           </h2>
         </motion.div>
 
-        {/* Row 1: Featured (2 cols) + CosmosBusta (1 col) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <ProjectCard project={featured} index={0} direction="left" />
-          <ProjectCard project={rest[0]}  index={1} direction="right" />
+        {/* Row 1: SweatShot (left) + Pitch (right) — equal halves */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          {/* SweatShot — spinning border beam */}
+          <div className="relative rounded-[14px] overflow-hidden p-[2px]">
+            <div
+              className="absolute"
+              style={{
+                inset: "-150%",
+                background: "conic-gradient(transparent 0deg, transparent 250deg, #fbbf24 290deg, #22c55e 330deg, transparent 360deg)",
+                animation: "card-border-spin 3s linear infinite",
+                transformOrigin: "center center",
+              }}
+            />
+            <div className="relative z-10">
+              <ProjectCard project={featured} index={0} direction="left" />
+            </div>
+          </div>
+          <ProjectCard project={rest[0]} index={1} direction="right" />
         </div>
 
-        {/* Row 2: 2×2 grid — more breathing room per card */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12">
+        {/* Row 2: four smaller cards in 4-col */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-12">
           {rest.slice(1).map((p, i) => (
             <ProjectCard key={p.id} project={p} index={i + 2} direction="up" />
           ))}
