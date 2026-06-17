@@ -105,8 +105,8 @@ function ProjectCard({
             ))}
           </div>
 
-          {/* GitHub + Live buttons */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          {/* GitHub + Live buttons — stacked vertically so they never get cut in narrow columns */}
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
             {project.github ? (
               <a
                 href={project.github}
